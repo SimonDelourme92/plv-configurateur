@@ -643,6 +643,7 @@ const CAT=[
   {id:'carte-500',name:'Carte 500 g (compact)',fam:'Carton',top:0xF8F7F3,side:0xEFEDE6,edge:0x9A968C,rho:0.77,tags:'carton compact cartonnette carte',use:'panel'},
   {id:'mb-blanc',thick:4,name:'Microbis couché 1 face blanc · 4 mm',fam:'Carton ondulé',top:0xF6F5F1,side:0xEDEBE5,edge:0x8A8A84,rho:0.2,tags:'microbis carton double micro cannelure jade',use:'panel'},
   {id:'mb-noir',thick:4,name:'Microbis couché 1 face, imprimé noir · 4 mm',fam:'Carton ondulé',top:0x1F1F22,side:0x1A1A1C,edge:0x6A6A6A,rho:0.2,tags:'microbis carton noir imprime',use:'panel'},
+  {id:'mb-blanc-mat',thick:4,name:'Microbis blanc non couché (mat) · 4 mm',fam:'Carton ondulé',top:0xEEEEE9,side:0xE6E6E0,edge:0x8A8A84,rho:0.2,tags:'microbis carton blanc mat non couche',use:'panel'},
   {id:'mb-kraft-brut',thick:4,name:'Microbis kraft brut (2 faces kraft) · 4 mm',fam:'Carton ondulé',top:0xB39472,side:0xA88660,edge:0x6E5236,rho:0.2,tags:'microbis carton kraft brun brut xavier dumont',use:'panel'},
   {id:'mb-am',thick:4,name:'Microbis couché 1 face, imprimé bleu Albin Michel · 4 mm',fam:'Carton ondulé',top:0x4B8088,side:0x447379,edge:0x2D4E52,rho:0.2,tags:'microbis carton bleu albin michel turquoise canard imprime',use:'panel'},
   {id:'mb-canard',thick:4,name:'Microbis couché 1 face, imprimé bleu canard · 4 mm',fam:'Carton ondulé',top:0x2E8E9C,side:0x28808D,edge:0x1B5A63,rho:0.2,tags:'microbis carton bleu canard turquoise imprime',use:'panel'},
@@ -1847,7 +1848,7 @@ MODELS['colonne-jade-4']={
     // blancs légèrement froids pour compenser l'éclairage chaud de la scène : rendu « blanc blanc »
     const KRAFT=/kraft/.test(P.mat_struct||''); const BRUT=new THREE.MeshLambertMaterial({color:KRAFT?0xA88660:0xE3E5E7}), coatC=new Map();
     const coat=M=>{if(!coatC.has(M)){let c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; if(c===0xF6F5F1) c=0xEEF1F5;
-      coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:KRAFT?0x0a0a0a:0x262626,shininess:KRAFT?6:42,map:M.top&&M.top.map||null}));} return coatC.get(M);};
+      coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:(KRAFT||c===0xEEEEE9)?0x0a0a0a:0x262626,shininess:(KRAFT||c===0xEEEEE9)?6:42,map:M.top&&M.top.map||null}));} return coatC.get(M);};
     // chant : coupe de microbis EE (couché blanc / cannelure E / papier milieu / cannelure E / blanc brut), texture dessinée ici, sans image
     const chantTex=(()=>{const c=document.createElement('canvas'); c.width=128; c.height=64; const x=c.getContext('2d'), H=64;
       const band=(y0,h,col)=>{x.fillStyle=col; x.fillRect(0,H-y0-h,128,h);};
@@ -1978,7 +1979,7 @@ MODELS['colonne-xd-4']=Object.assign({},MODELS['colonne-jade-4'],{
   label:'Colonne 4 cases Générique XAVIER DUMONT – Base kraft', desc:'Microbis kraft brut, corps incliné, 4 tablettes, rivets, fronton boîte 3 faces',
   defaults:{N:4,W:17.7,t:4,Hs:125.15,tilt:8.3,Db:35.84,Dt:23.98,Dc:23.0,s1:20.81,pitch:26.27,shO:6.5,shW:25.7,plH:0,hH:38.0,hD:23.0,hW:20.56,hMode:'rect',
     rivets:[[20.5,112.9],[29.1,49.8],[32.9,9.9]],
-    book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-kraft-brut',mat_fronton:'mb-blanc',mat_socle:'mb-kraft-brut'}
+    book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-kraft-brut',mat_fronton:'mb-blanc-mat',mat_socle:'mb-kraft-brut'}
 });
 /* =================== État =================== */
 const KEY='plvconf-v2';
