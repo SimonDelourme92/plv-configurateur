@@ -693,7 +693,7 @@ function comptoirBays(P){
 const MODELS={};
 const F_=(k,label,min,max,step,u,help)=>({k,label,min,max,step,u,help});
 const CATS={
-  comptoir:{label:'Comptoir',models:[['comptoir-bois'],['comptoir-carton']]},
+  comptoir:{label:'Comptoir',models:[['comptoir-bois'],['comptoir-carton'],['porteflyer-30']]},
   tourniquet:{label:'Tourniquet',models:[['tourniquet-bois'],['tourniquet-metal'],['tourniquet-1001'],['tourniquet-moulinet']]},
   stoprayon:{label:'Stop rayon',models:[['stoprayon-carte']]},
   sol:{label:'Présentoir de sol',models:[['colonne-jade-4'],['colonne-xd-4']]}
@@ -1999,6 +1999,52 @@ MODELS['colonne-xd-4']=Object.assign({},MODELS['colonne-jade-4'],{
     rivets:[[20.5,112.9],[29.1,49.8],[32.9,9.9]],
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-kraft-brut',mat_fronton:'mb-blanc-mat',mat_socle:'mb-kraft-brut'}
 });
+/* ---------- Porte-flyer / comptoir 30 vol. (microbis) — cotes du tracé VASSEUR G 0747 (OP ALERTE, 19/08/2026) ---------- */
+MODELS['porteflyer-30']={
+  cat:'comptoir', label:'Porte-flyer comptoir 30 vol. – microbis', desc:'Dos haut à coins arrondis, bac avant, joues en biais (tracé Vasseur)', floor:false, orient:false,
+  defaults:{W:41.4,Hd:24.1,r:2,Wb:35.4,Hf:7.18,Df:5.87,Hj:12.5,t:4,book:'allia',bw:115,bh:176,bt:9,auto:true,qty:10,mat_struct:'mb-blanc',mat_bac:'mb-blanc'},
+  parts:[{key:'struct',label:'Dos',short:'dos',use:'panel'},{key:'bac',label:'Bac : façade, fond, joues',short:'bac',use:'panel'}],
+  slots:[{key:'fronton',label:'Dos',sub:'face avant du dos',short:'dos'},{key:'facade',label:'Façade du bac',sub:'avant du bac',short:'façade'},
+    {key:'joues',label:'Joues du bac',sub:'les deux côtés',short:'joues'}],
+  structure(ui){
+    ui.group('Dos',[F_('W','Largeur du dos',20,80,0.1,'cm'),F_('Hd','Hauteur du dos',10,60,0.1,'cm','Du fond du bac au sommet.'),F_('r','Rayon des coins',0,8,0.1,'cm')]);
+    ui.group('Bac',[F_('Wb','Largeur du bac',15,80,0.1,'cm'),F_('Hf','Hauteur de façade',2,20,0.1,'cm'),F_('Df','Profondeur du fond',2,20,0.1,'cm'),F_('Hj','Hauteur des joues à l\'arrière',3,30,0.1,'cm'),F_('t','Épaisseur microbis',2,8,0.5,'mm')]);
+  },
+  specs:P=>[['Principe','porte-flyer comptoir en microbis : dos haut + bac avant à joues en biais'],['Hors-tout',`${fmt(P.W)} × ${fmt(P.Df+P.t/10*2)} × ${fmt(P.Hd)} cm`],['Bac',`${fmt(P.Wb)} × ${fmt(P.Df)} cm, façade ${fmt(P.Hf)} cm`],['Livres',bookLabel(P)]],
+  build(P,G,K,V){
+    const MS=K.part(P,'struct'), MB=K.part(P,'bac'), t=P.t/10, W=P.W, H=P.Hd, Wb=P.Wb, Hf=P.Hf, Df=P.Df, Hj=Math.max(P.Hj,Hf);
+    const core=new THREE.Group(), ext=M=>new THREE.MeshPhongMaterial({color:M.top&&M.top.color?M.top.color.getHex():0xffffff,specular:0x222222,shininess:30}), brut=new THREE.MeshLambertMaterial({color:0xE3E5E7});
+    // dos à coins arrondis (extrusion)
+    const r=Math.min(P.r,W/2,H/2), s=new THREE.Shape(); s.moveTo(-W/2,0); s.lineTo(W/2,0); s.lineTo(W/2,H-r); s.quadraticCurveTo(W/2,H,W/2-r,H); s.lineTo(-W/2+r,H); s.quadraticCurveTo(-W/2,H,-W/2,H-r); s.closePath();
+    const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:12}); const back=new THREE.Mesh(g,[brut,ext(MS)]); back.position.z=-t; core.add(back);
+    const im=K.img(V.fronton,W,H); { const pg=new THREE.ShapeGeometry(s,12), pos=pg.attributes.position, uv=pg.attributes.uv; for(let i=0;i<pos.count;i++) uv.setXY(i,(pos.getX(i)+W/2)/W,pos.getY(i)/H); uv.needsUpdate=true;
+      const m=new THREE.Mesh(pg,im||ext(MS)); m.position.z=0.05; core.add(m); }
+    // bac : fond, façade, joues en biais
+    const zF=Df+t; K.box(core,-Wb/2,Wb/2,0,t,0,zF,K.faces(ext(MB),{3:brut}),MB.edge);
+    const fim=K.img(V.facade,Wb,Hf); K.box(core,-Wb/2,Wb/2,0,Hf,zF-t,zF,K.faces(ext(MB),{4:fim||ext(MB),5:brut}),MB.edge);
+    const jim=K.img(V.joues,zF,Hj);
+    [-1,1].forEach(sg=>{const js=new THREE.Shape(); js.moveTo(0,0); js.lineTo(zF,0); js.lineTo(zF,Hf); js.lineTo(0,Hj); js.closePath();
+      const jg=new THREE.ExtrudeGeometry(js,{depth:t,bevelEnabled:false}); const jm=new THREE.Mesh(jg,[ext(MB),brut]); jm.rotation.y=-Math.PI/2; jm.position.x=sg<0?-Wb/2+t:Wb/2; core.add(jm);
+      if(jim){const pg=new THREE.ShapeGeometry(js), pos=pg.attributes.position, uv=pg.attributes.uv; for(let i=0;i<pos.count;i++) uv.setXY(i,sg<0?pos.getX(i)/zF:1-pos.getX(i)/zF,pos.getY(i)/Hj); uv.needsUpdate=true;
+        const m=new THREE.Mesh(pg,jim); m.rotation.y=-Math.PI/2; m.position.x=sg<0?-Wb/2-0.05:Wb/2+0.05; m.scale.z=sg<0?1:-1; core.add(m);}});
+    // livres / flyers : debout, couverture face client, appuyés contre le dos
+    const bw=P.bw/10, bh=P.bh/10, bt=P.bt/10, inW=Wb-2*t, nF=Math.max(1,Math.floor((inW+0.3)/(bw+0.3))), cap=Math.max(0,Math.floor((Df-0.2)/bt+1e-6)), per=P.auto?cap:Math.min(P.qty|0,cap);
+    const books=new THREE.Group(); books.visible=G.showBooks; books.userData.isBooks=true; core.add(books);
+    const totW=nF*bw+(nF-1)*0.3;
+    for(let f=0;f<nF;f++){const x0=-totW/2+f*(bw+0.3); for(let i=0;i<per;i++){const z1=zF-t-0.05-i*bt; K.box(books,x0,x0+bw,t+0.02,t+bh,z1-bt+0.04,z1,K.bookFace(i+f*5,bw,bh),null);}}
+    const total=per*nF, sz=Math.max(1.4,H/24), o=sz*1.6;
+    const dims=new THREE.Group(); dims.userData.isDims=true; dims.visible=G.showDims; core.add(dims);
+    K.dim(dims,[-W/2,0,zF+o],[W/2,0,zF+o],[0,0,1],fmt(W)+' cm',[0,0,zF+o+sz*1.4],sz);
+    K.dim(dims,[W/2+o,0,0],[W/2+o,H,0],[1,0,0],fmt(H)+' cm',[W/2+o+sz*2.6,H/2,0],sz);
+    K.dim(dims,[W/2+o,0,zF],[W/2+o,0,-t],[1,0,0],fmt(zF+t)+' cm',[W/2+o+sz*2.6,0,zF/2],sz*0.85);
+    const al=[]; if(bw>inW) al.push(`Livres trop larges pour le bac (${fmt(inW)} cm).`); if(bh>H-1) al.push('Livres plus hauts que le dos.');
+    return {core,fill:{per,cap,facings:nF,total},slotSizes:{fronton:[W,H],facade:[Wb,Hf],joues:[zF,Hj],covers:[bw,bh]},
+      bounds:{x0:-W/2,x1:W/2,z0:-t,z1:zF,yBase:0,Htot:H},pad:{right:o+sz*6,left:o+4,front:o+sz*3},
+      kv:[['Hors-tout L × P × H',`${fmt(W)} × ${fmt(zF+t)} × ${fmt(H)}`,true],['Facings',`${nF}`],['Livres / facing',`${per} <small>max ${cap}</small>`],['Volumes',`${total}`]],
+      measures:[['Dos',`${fmt(W)} × ${fmt(H)} cm, coins R ${fmt(r)}`],['Bac',`${fmt(Wb)} × ${fmt(Df)} cm, façade ${fmt(Hf)} cm, joues ${fmt(Hj)} cm à l'arrière`]],alerts:al};
+  }
+};
+
 /* =================== État =================== */
 const KEY='plvconf-v2';
 let ST; try{ST=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){ST=null;}
@@ -2035,7 +2081,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(ST));}catch(e){}};
 const curP=()=>ST.P[ST.type], G=ST.G;
 
 /* Visuels : images importées (mémorisées dans le navigateur via IndexedDB) */
-const VIS={'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'colonne-xd-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
+const VIS={'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'porteflyer-30':{covers:[]},'colonne-xd-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
 const curV=()=>VIS[ST.type];
 const IDB={
   db:null,
