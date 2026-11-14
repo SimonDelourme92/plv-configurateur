@@ -1912,10 +1912,11 @@ MODELS['colonne-jade-4']={
     if(hH>0.2){const hg=new THREE.Group(); hg.position.set(0,yT,zT); core.add(hg);
       const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), kz=hD/24.4, kh=hH/30.2;
       K.box(hg,-Wo/2,Wo/2,0,hH,-t,0,fold(mb(MF,4,fim,[Wo,hH,t]),MF,[0,1]),MF.edge); /* fronton : plié sur ses côtés */
+      const hw=new THREE.Group(); hw.position.z=-t; hg.add(hw); /* côtés derrière la face (évite le scintillement au pli) */
       [-1,1].forEach(sg=>{const s=new THREE.Shape(), X=v=>sg*v*kz;
         s.moveTo(0,0); s.lineTo(0,hH); s.lineTo(X(9.24),hH); s.quadraticCurveTo(X(12.68),hH,X(14.42),27.23*kh); s.lineTo(X(23.02),12.54*kh);
         s.quadraticCurveTo(X(24.4),10.18*kh,X(24.4),7.48*kh); s.lineTo(X(24.4),0); s.closePath();
-        cut(hg,s,t,sg*(Wo/2-t),sg,MF,cim,hD,hH);});
+        cut(hw,s,t,sg*(Wo/2-t),sg,MF,cim,hD,hH);});
       parts.push({m:(Wo*hH+2*0.8*hD*hH)*t*MF.rho,y:yT+hH/2,d:-zT+hD*0.4});
       Htot=yT+hH; zBackH=zT-hD;}
     // encombrement, stabilité
