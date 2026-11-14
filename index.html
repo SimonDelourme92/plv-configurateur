@@ -682,7 +682,11 @@ const CAT=[
 ];
 const CAT_BY=Object.fromEntries(CAT.map(m=>[m.id,m]));
 /* Matériaux embarqués dans un JSON importé : ajoutés au catalogue s'ils manquent, pour que la PLV importée garde exactement ses matières */
-function regMats(d){Object.entries((d&&d.materiaux)||{}).forEach(([id,m])=>{if(!CAT_BY[id]&&m&&typeof m==='object'){const x=Object.assign({},m,{id}); CAT.push(x); CAT_BY[id]=x;}});}
+/* matériaux personnalisés (importés via JSON) : mémorisés dans le navigateur pour survivre au rechargement */
+const MATS_KEY='plvconf-mats';
+function regMats(d,noSave){let add=0; Object.entries((d&&d.materiaux)||{}).forEach(([id,m])=>{if(!CAT_BY[id]&&m&&typeof m==='object'){const x=Object.assign({},m,{id}); CAT.push(x); CAT_BY[id]=x; add++;}});
+  if(add&&!noSave){try{const s=JSON.parse(localStorage.getItem(MATS_KEY)||'{}'); Object.assign(s,d.materiaux); localStorage.setItem(MATS_KEY,JSON.stringify(s));}catch(e){}}}
+try{regMats({materiaux:JSON.parse(localStorage.getItem(MATS_KEY)||'{}')},true);}catch(e){}
 /* bois retirés du catalogue : les anciens réglages retombent sur le contreplaqué bouleau */
 const WOOD_GONE=['cp-peuplier','mdf-blanc','mdf-noir','mela-blanc','mela-chene','chene','hetre','pin','bambou'];
 WOOD_GONE.forEach(id=>{CAT_BY[id]=CAT_BY['cp-bouleau'];});
@@ -2043,7 +2047,7 @@ MODELS['porteflyer-30']={
     const im=K.img(V.fronton,W,H); { const pg=new THREE.ShapeGeometry(s,12), pos=pg.attributes.position, uv=pg.attributes.uv; for(let i=0;i<pos.count;i++) uv.setXY(i,(pos.getX(i)+W/2)/W,pos.getY(i)/H); uv.needsUpdate=true;
       const m=new THREE.Mesh(pg,im||ext(MS)); m.position.z=0.05; core.add(m); }
     // bac : fond, façade, joues en biais
-    const zF=Df+t; K.box(core,-Wb/2,Wb/2,0,t,0,zF,K.faces(ext(MB),{3:brut}),MB.edge);
+    const zF=Df+t; K.box(core,-Wb/2,Wb/2,0,t,0,zF,ext(MB),MB.edge); /* fond : dessus ET dessous imprimés */
     const fim=K.img(V.facade,Wb,Hf); /* façade repliée sur elle-même : 2 couches collées, haut = pli arrondi, retour intérieur jusqu'au fond */
     K.box(core,-Wb/2,Wb/2,0,Hf-t,zF-t,zF,K.faces(ext(MB),{4:fim||ext(MB),5:brut}),null);
     K.box(core,-Wb/2+0.25,Wb/2-0.25,t,Hf-t,zF-2*t,zF-t,K.faces(ext(MB),{4:brut}),null);
