@@ -1813,7 +1813,7 @@ MODELS['colonne-jade-4']={
   defaults:{N:4,W:17.3,t:4,Hs:125.08,tilt:8,Db:36.41,Dt:24.49,Dc:22.9,s1:22.11,pitch:26.3,shO:6.5,shW:24,plH:21.9,hH:30.2,hD:24.4,
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-blanc',mat_fronton:'mb-blanc',mat_socle:'mb-blanc'},
   parts:[{key:'struct',label:'Corps : joues, dos, tablettes',short:'corps',use:'panel'},{key:'fronton',label:'Fronton',short:'fronton',use:'panel'},{key:'socle',label:'Socle',short:'socle',use:'panel'}],
-  slots:[{key:'fronton',label:'Fronton',sub:'face avant',short:'fronton'},{key:'frontonC',label:'Côtés du fronton',sub:'les deux joues galbées',short:'côtés fronton'},
+  slots:[{key:'fronton',label:'Fronton',sub:'face avant',short:'fronton'},{key:'frontonC',label:'Côté gauche du fronton',sub:'vu de face (sert aussi à droite si vide)',short:'côté g. fronton'},{key:'frontonCD',label:'Côté droit du fronton',sub:'vu de face, facultatif',short:'côté d. fronton'},
     {key:'joues',label:'Joue gauche',sub:'côté gauche vu de face (sert aussi à droite si vide)',short:'joue gauche'},{key:'jouesD',label:'Joue droite',sub:'côté droit vu de face, facultatif',short:'joue droite'},{key:'socle',label:'Socle',sub:'face avant sous la 1re tablette',short:'socle'}],
   structure(ui){
     const n=document.createElement('p'); n.className='note'; n.style.margin='0 2px 8px'; n.textContent='Cotes par défaut = tracés Jade PLV J 3557 (microbis). Le corps penche vers l\'arrière : hauteurs mesurées le long de la façade, profondeurs perpendiculaires à la façade.'; panel.appendChild(n);
@@ -1910,13 +1910,13 @@ MODELS['colonne-jade-4']={
     // fronton 3 faces, posé sur le dessus (bas horizontal), face avant à l'aplomb de l'arête avant
     const yT=Hs*c, zT=-Hs*sn, hH=P.hH, hD=P.hD; let Htot=yT, zBackH=zT;
     if(hH>0.2){const hg=new THREE.Group(); hg.position.set(0,yT,zT); core.add(hg);
-      const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), kz=hD/24.4, kh=hH/30.2;
+      const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), cimD=V.frontonCD?K.img(V.frontonCD,hD,hH):cim, kz=hD/24.4, kh=hH/30.2;
       K.box(hg,-Wo/2,Wo/2,0,hH,-t,0,fold(mb(MF,4,fim,[Wo,hH,t]),MF,[0,1]),MF.edge); /* fronton : plié sur ses côtés */
       const hw=new THREE.Group(); hw.position.z=-t; hg.add(hw); /* côtés derrière la face (évite le scintillement au pli) */
       [-1,1].forEach(sg=>{const s=new THREE.Shape(), X=v=>sg*v*kz;
         s.moveTo(0,0); s.lineTo(0,hH); s.lineTo(X(9.24),hH); s.quadraticCurveTo(X(12.68),hH,X(14.42),27.23*kh); s.lineTo(X(23.02),12.54*kh);
         s.quadraticCurveTo(X(24.4),10.18*kh,X(24.4),7.48*kh); s.lineTo(X(24.4),0); s.closePath();
-        cut(hw,s,t,sg*(Wo/2-t),sg,MF,cim,hD,hH);});
+        cut(hw,s,t,sg*(Wo/2-t),sg,MF,sg<0?cim:cimD,hD,hH);});
       parts.push({m:(Wo*hH+2*0.8*hD*hH)*t*MF.rho,y:yT+hH/2,d:-zT+hD*0.4});
       Htot=yT+hH; zBackH=zT-hD;}
     // encombrement, stabilité
@@ -1939,7 +1939,7 @@ MODELS['colonne-jade-4']={
     if(back<8) al.push(`Bascule arrière dès ${Math.round(back)}° : corps trop penché, réduire l'inclinaison.`);
     if(fwd<8) al.push(`Bascule avant dès ${Math.round(fwd)}° : prévoir un lest dans le socle.`);
     return {core,fill:{per,cap,facings:nC*nF,total,unit:'case',units:'Cases'},
-      slotSizes:{fronton:[Wo,hH],frontonC:[hD,hH],joues:[Db,Ytop],jouesD:[Db,Ytop],socle:[Wo,plH],covers:[bw,bh]},
+      slotSizes:{fronton:[Wo,hH],frontonC:[hD,hH],frontonCD:[hD,hH],joues:[Db,Ytop],jouesD:[Db,Ytop],socle:[Wo,plH],covers:[bw,bh]},
       bounds:{x0:-shW/2,x1:shW/2,z0,z1,yBase:0,Htot},pad:{right:o+sz*6+6,left:o+sz*3+6,front:o+4},
       kv:[['Hors-tout L × P × H',`${fmt(shW)} × ${fmt(z1-z0)} × ${fmt(Htot)}`,true],['Cases',`${nC}${nF>1?` <small>${nF} facings</small>`:''}`],['Livres / case',`${per*nF} <small>max ${cap*nF}</small>`],
         ['Volumes',`${total}`],['Corps au sol',`${fmt(Wo)} × ${fmt(Dfoot)} cm`],['Poids chargé',`${fmt(mt/1000)} kg`],['Bascule arr./av.',`${Math.round(back)}° / ${Math.round(fwd)}°`]],
