@@ -641,10 +641,9 @@ const CAT=[
   {id:'carton-ecru',name:'Carton écru',fam:'Carton',top:0xE8DCC4,side:0xDCCDB0,edge:0x857659,rho:0.2,tags:'ondule',use:'panel'},
   {id:'carton-nid',name:"Carton nid d'abeille",fam:'Carton',top:0xEFE4CC,side:0xE2D3B4,edge:0x867859,rho:0.12,tags:'alveolaire',use:'panel'},
   {id:'carte-500',name:'Carte 500 g (compact)',fam:'Carton',top:0xF8F7F3,side:0xEFEDE6,edge:0x9A968C,rho:0.77,tags:'carton compact cartonnette carte',use:'panel'},
-  {id:'mb-blanc',thick:4,name:'Microbis blanc · 4 mm',fam:'Carton ondulé',top:0xF6F5F1,side:0xEDEBE5,edge:0x8A8A84,rho:0.2,tags:'microbis carton double micro cannelure jade',use:'panel'},
-  {id:'mb-noir',thick:4,name:'Microbis imprimé noir · 4 mm',fam:'Carton ondulé',top:0x1F1F22,side:0x1A1A1C,edge:0x6A6A6A,rho:0.2,tags:'microbis carton noir imprime',use:'panel'},
-  {id:'mb-canard',thick:4,name:'Microbis imprimé bleu canard · 4 mm',fam:'Carton ondulé',top:0x2E8E9C,side:0x28808D,edge:0x1B5A63,rho:0.2,tags:'microbis carton bleu canard turquoise imprime',use:'panel'},
-  {id:'mb-kraft',thick:4,name:'Microbis kraft · 4 mm',fam:'Carton ondulé',top:0xCDAB7C,side:0xC09E6E,edge:0x7A5E3A,rho:0.2,tags:'microbis carton kraft brun',use:'panel'},
+  {id:'mb-blanc',thick:4,name:'Microbis couché 1 face blanc · 4 mm',fam:'Carton ondulé',top:0xF6F5F1,side:0xEDEBE5,edge:0x8A8A84,rho:0.2,tags:'microbis carton double micro cannelure jade',use:'panel'},
+  {id:'mb-noir',thick:4,name:'Microbis couché 1 face, imprimé noir · 4 mm',fam:'Carton ondulé',top:0x1F1F22,side:0x1A1A1C,edge:0x6A6A6A,rho:0.2,tags:'microbis carton noir imprime',use:'panel'},
+  {id:'mb-canard',thick:4,name:'Microbis couché 1 face, imprimé bleu canard · 4 mm',fam:'Carton ondulé',top:0x2E8E9C,side:0x28808D,edge:0x1B5A63,rho:0.2,tags:'microbis carton bleu canard turquoise imprime',use:'panel'},
   {id:'carton-gris',name:'Carton gris contrecollé',fam:'Carton',top:0xB9B6AF,side:0xAAA79F,edge:0x66635D,rho:0.7,tags:'compact',use:'panel'},
   {id:'forex-blanc',name:'Forex blanc (PVC expansé)',fam:'Plastique',top:0xFFFFFF,side:0xF3F3F1,edge:0xA0A0A0,rho:0.5,tags:'pvc',use:'panel'},
   {id:'forex-noir',name:'Forex noir (PVC expansé)',fam:'Plastique',top:0x2B2D30,side:0x232528,edge:0x0E0F10,rho:0.5,tags:'pvc',use:'panel'},
@@ -1826,7 +1825,7 @@ MODELS['colonne-jade-4']={
     ui.group('Fronton et socle',[F_('hH','Hauteur du fronton',0,60,0.1,'cm','0 = sans fronton.'),F_('hD','Profondeur du fronton',5,40,0.1,'cm'),F_('plH','Hauteur du socle',0,40,0.1,'cm')]);
   },
   specs:P=>{const Wo=P.W+4*P.t/10, c=Math.cos(P.tilt*Math.PI/180);
-    return [['Principe','colonne de sol microbis, corps incliné, fronton 3 faces'],['Hors-tout',`${fmt(Math.max(P.shW,Wo))} × ${fmt(P.Db/c)} × ${fmt(P.Hs*c+P.hH)} cm`],
+    return [['Principe','colonne de sol microbis couché 1 face (verso blanc brut), corps incliné, fronton 3 faces'],['Hors-tout',`${fmt(Math.max(P.shW,Wo))} × ${fmt(P.Db/c)} × ${fmt(P.Hs*c+P.hH)} cm`],
       ['Corps',`${fmt(Wo)} cm de large, façade ${fmt(P.Hs)} cm inclinée de ${fmt(P.tilt)}°`],['Cases',`${P.N} × pas ${fmt(P.pitch)} cm, intérieur ${fmt(P.W)} × ${fmt(P.Dc)} cm`],
       ['Tablettes',`${fmt(P.shW)} × ${fmt(P.shO+P.Dc+P.t/10)} cm + patte 1,9 cm, débord ${fmt(P.shO)} cm, goupilles au dos`],['Fronton',P.hH>0?`${fmt(Wo)} × ${fmt(P.hH)} cm, prof. ${fmt(P.hD)} cm`:'aucun'],['Socle',`${fmt(Wo)} × ${fmt(P.plH)} cm`],['Livres',bookLabel(P)]];},
   build(P,G,K,V){
@@ -1839,23 +1838,30 @@ MODELS['colonne-jade-4']={
     const shape=pts=>{const s=new THREE.Shape(); s.moveTo(pts[0][0],pts[0][1]); pts.slice(1).forEach(p=>s.lineTo(p[0],p[1])); s.closePath(); return s;};
     const area=pts=>{let a=0; for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length]; a+=p[0]*q[1]-q[0]*p[1];} return Math.abs(a)/2;};
     // panneau découpé : extrusion (sg -1 = côté gauche, +1 = droit) + visuel collé sur la face extérieure
-    const cut=(g,sh,depth,xIn,sg,M,im,D,Hh)=>{
+    /* Microbis couché 1 face : face imprimée lisse et satinée (couché), autre face blanche brute et mate, chant cannelé */
+    const BRUT=new THREE.MeshLambertMaterial({color:0xEBE8E1}), CHANT=new THREE.MeshLambertMaterial({color:0xD9D1C2}), coatC=new Map();
+    const coat=M=>{if(!coatC.has(M)){const c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:0x2c2c2c,shininess:48,map:M.top&&M.top.map||null}));} return coatC.get(M);};
+    // f = indice de la face couchée (2 +y, 3 -y, 4 +z, 5 -z) ; la face opposée est brute, les 4 autres sont des chants
+    const mb=(M,f,img)=>{const opp={2:3,3:2,4:5,5:4}[f], a=[CHANT,CHANT,CHANT,CHANT,CHANT,CHANT]; a[f]=img||coat(M); a[opp]=BRUT; return a;};
+    const dbl=M=>{const a=mb(M,2); a[3]=coat(M); return a;}; // tablette pliée en 2 : couché dessus et dessous
+    const cut=(g,sh,depth,xIn,sg,M,im,D,Hh,inner)=>{
       const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false,curveSegments:16});
-      const m=new THREE.Mesh(geo,[M.top,M.side]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
+      const m=new THREE.Mesh(geo,[BRUT,CHANT]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),M.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); g.add(e);
-      if(im){const pg=new THREE.ShapeGeometry(sh,16), pos=pg.attributes.position, uv=pg.attributes.uv;
+      {const pg=new THREE.ShapeGeometry(sh,16), pos=pg.attributes.position, uv=pg.attributes.uv;
         for(let i=0;i<pos.count;i++){const x=pos.getX(i); uv.setXY(i,sg<0?(x+D)/D:x/D,pos.getY(i)/Hh);} uv.needsUpdate=true;
-        const pm=new THREE.Mesh(pg,im); pm.rotation.y=sg*Math.PI/2; pm.position.x=xIn+sg*(depth+0.02); g.add(pm);}
+        const pm=new THREE.Mesh(pg,im||coat(M)); pm.rotation.y=sg*Math.PI/2; pm.position.x=xIn+sg*(depth+0.02); g.add(pm);
+        if(inner){const ci=coat(M).clone(); ci.side=THREE.BackSide; const pi=new THREE.Mesh(new THREE.ShapeGeometry(inner),ci); pi.rotation.y=pm.rotation.y; pi.position.x=xIn-sg*0.02; g.add(pi);}}
     };
     // joues : arête avant (pli) = axe s, bas et haut horizontaux une fois le corps incliné
     const Ytop=Hs+Dt*tn, jim=K.img(V.joues,Db,Ytop);
     [-1,1].forEach(sg=>{const pts=[[0,0],[sg*Db,Db*tn],[sg*Dt,Ytop],[0,Hs]];
-      cut(body,shape(pts),t2,sg*(Wo/2-t2),sg,MS,jim,Db,Ytop); addM(area(pts)*t2*MS.rho,Hs/2,-(Db+Dt)/4);});
+      cut(body,shape(pts),t2,sg*(Wo/2-t2),sg,MS,jim,Db,Ytop,shape([[0,0],[sg*Dc,Dc*tn],[sg*Dc,Hs+Dc*tn],[0,Hs]])); /* doublure intérieure (pli à 180°) : couché côté cases */ addM(area(pts)*t2*MS.rho,Hs/2,-(Db+Dt)/4);});
     // dos des cases, parallèle à la façade
-    K.box(body,-W/2,W/2,Dc*tn,Hs+Dc*tn,-Dc-t,-Dc,MS.top,MS.edge); addM(W*Hs*t*MS.rho,Hs/2,-Dc);
+    K.box(body,-W/2,W/2,Dc*tn,Hs+Dc*tn,-Dc-t,-Dc,mb(MS,4),MS.edge); addM(W*Hs*t*MS.rho,Hs/2,-Dc);
     // socle imprimé
     const plH=Math.min(P.plH,Math.max(0,P.s1)), sim=K.img(V.socle,Wo,plH);
-    if(plH>0.2){K.box(body,-Wo/2,Wo/2,0,plH,0,t,K.faces(MP.top,{4:sim||MP.top}),MP.edge); addM(Wo*plH*t*MP.rho,plH/2,0);}
+    if(plH>0.2){K.box(body,-Wo/2,Wo/2,0,plH,0,t,mb(MP,4,sim),MP.edge); addM(Wo*plH*t*MP.rho,plH/2,0);}
     // tablettes + livres
     const bw=P.bw/10, bh=P.bh/10, bt=P.bt/10, wideD=Math.min(shD,shO+7.5);
     const nF=Math.max(1,Math.floor((W-0.2+0.3)/(bw+0.3)+1e-6)), clashW=bw>W-0.2+1e-6;
@@ -1865,15 +1871,15 @@ MODELS['colonne-jade-4']={
     for(let k=0;k<N;k++){
       const s0=P.s1+k*P.pitch; if(s0+lipH>Hs-1) break;
       const sTop=k<N-1&&P.s1+(k+1)*P.pitch+lipH<=Hs-1?P.s1+(k+1)*P.pitch:Hs, clear=sTop-(s0+t2); clearMin=Math.min(clearMin,clear);
-      K.box(body,-shW/2,shW/2,s0,s0+lipH,shO-lipT,shO,MS.top,MS.edge);              // nez
-      K.box(body,-shW/2,shW/2,s0,s0+t2,shO-wideD,shO-lipT,MS.top,MS.edge);            // partie large (ailes dans les joues)
-      if(shD>wideD) K.box(body,-W/2,W/2,s0,s0+t2,shO-shD,shO-wideD,MS.top,MS.edge);   // partie étroite entre les joues
+      K.box(body,-shW/2,shW/2,s0,s0+lipH,shO-lipT,shO,(()=>{const a=mb(MS,4); a[2]=coat(MS); return a;})(),MS.edge);              // nez
+      K.box(body,-shW/2,shW/2,s0,s0+t2,shO-wideD,shO-lipT,dbl(MS),MS.edge);            // partie large (ailes dans les joues)
+      if(shD>wideD) K.box(body,-W/2,W/2,s0,s0+t2,shO-shD,shO-wideD,dbl(MS),MS.edge);   // partie étroite entre les joues
       // patte qui traverse le dos (fente 8 × 80 mm) + goupille en T glissée dans le trou des 2 épaisseurs
-      const zb=shO-shD; K.box(body,-3.4,3.4,s0,s0+t2,zb-tabL,zb,MS.top,MS.edge);
+      const zb=shO-shD; K.box(body,-3.4,3.4,s0,s0+t2,zb-tabL,zb,dbl(MS),MS.edge);
       { const gp=new THREE.Shape(), r=1.5, y1=t2+2.5;
         gp.moveTo(-2,t2-4); gp.lineTo(2,t2-4); gp.lineTo(2,t2); gp.lineTo(4.5,t2); gp.lineTo(4.5,y1-r); gp.quadraticCurveTo(4.5,y1,4.5-r,y1);
         gp.lineTo(-4.5+r,y1); gp.quadraticCurveTo(-4.5,y1,-4.5,y1-r); gp.lineTo(-4.5,t2); gp.lineTo(-2,t2); gp.closePath();
-        const gg=new THREE.ExtrudeGeometry(gp,{depth:t,bevelEnabled:false,curveSegments:6}), gm=new THREE.Mesh(gg,[MS.top,MS.side]);
+        const gg=new THREE.ExtrudeGeometry(gp,{depth:t,bevelEnabled:false,curveSegments:6}), gm=new THREE.Mesh(gg,[BRUT,CHANT]);
         gm.position.set(0,s0,zb-0.1-t); body.add(gm);
         const ge=new THREE.LineSegments(new THREE.EdgesGeometry(gg,30),MS.edge); ge.position.copy(gm.position); body.add(ge); }
       addM((shW*wideD+W*(shD-wideD)+6.8*tabL)*t2*MS.rho+60*t*MS.rho,s0,shO-shD/2);
@@ -1888,7 +1894,7 @@ MODELS['colonne-jade-4']={
     const yT=Hs*c, zT=-Hs*sn, hH=P.hH, hD=P.hD; let Htot=yT, zBackH=zT;
     if(hH>0.2){const hg=new THREE.Group(); hg.position.set(0,yT,zT); core.add(hg);
       const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), kz=hD/24.4, kh=hH/30.2;
-      K.box(hg,-Wo/2,Wo/2,0,hH,-t,0,K.faces(MF.top,{4:fim||MF.top}),MF.edge);
+      K.box(hg,-Wo/2,Wo/2,0,hH,-t,0,mb(MF,4,fim),MF.edge);
       [-1,1].forEach(sg=>{const s=new THREE.Shape(), X=v=>sg*v*kz;
         s.moveTo(0,0); s.lineTo(0,hH); s.lineTo(X(9.24),hH); s.quadraticCurveTo(X(12.68),hH,X(14.42),27.23*kh); s.lineTo(X(23.02),12.54*kh);
         s.quadraticCurveTo(X(24.4),10.18*kh,X(24.4),7.48*kh); s.lineTo(X(24.4),0); s.closePath();
