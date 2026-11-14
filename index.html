@@ -723,6 +723,7 @@ const CATS={
   comptoir:{label:'Comptoir',models:[['comptoir-bois'],['comptoir-carton'],['porteflyer-30']]},
   tourniquet:{label:'Tourniquet',models:[['tourniquet-bois'],['tourniquet-metal'],['tourniquet-1001'],['tourniquet-moulinet']]},
   stoprayon:{label:'Stop pile pliant',models:[['stoprayon-carte']]},
+  silhouette:{label:'Silhouette de table',models:[['silhouette-table']]},
   sol:{label:'Présentoir de sol',models:[['colonne-jade-4'],['colonne-xd-4']]}
 };
 const partsOf=(m,P)=>typeof m.parts==='function'?m.parts(P):m.parts;
@@ -1874,6 +1875,66 @@ MODELS['stoprayon-carte']={
       kv:[['Hors-tout L × P × H',`${fmt(W)} × ${fmt(Dtot)} × ${fmt(Htot)}`,true],['Piles',`${nP}`],['Livres / pile',`${per} <small>max ${cap}</small>`],
         ['Volumes',`${per*nP}`],['Poids chargé',`${fmt(mt/1000)} kg`],['Bascule arr./av.',`${Math.round(back)}° / ${Math.round(fwd)}°`]],
       measures:[['Découpe à plat',`${fmt(W+2*jD)} × ${fmt(H+D)} cm`],['Pattes',`${fmt(tw)} × ${fmt(tl)} cm, fentes à ${fmt(si)} cm du bord`]],
+      alerts:al};
+  }
+};
+
+/* ---------- Silhouette de table : panneau découpé (contour relevé sur le tracé) posé sur 2 pieds à plat ---------- */
+MODELS['silhouette-table']={
+  cat:'silhouette', label:'Silhouette de table', desc:'Panneau découpé recto-verso, debout sur 2 pieds', flat:true,
+  defaults:{W:30,H:35,t:3,sil:null,fx1:5,fx2:22,fF:4,fB:3,fH:4,fShape:'rect',footColor:'#F4F2EC',pel:'aucun',book:'gf',bw:140,bh:205,bt:22,auto:true,qty:0,mat_dos:'carte-500',mat_pieds:'carton-blanc'},
+  parts:[{key:'dos',label:'Panneau',short:'panneau',use:'panel'},{key:'pieds',label:'Pieds',short:'pieds',use:'panel'}],
+  slots:[{key:'dos',label:'Recto',sub:'visuel recadré sur la découpe',short:'recto'},{key:'dosV',label:'Verso',sub:'tel que vu de derrière',short:'verso'}],
+  structure(ui){
+    ui.group('Panneau',[F_('W','Largeur',5,150,0.1,'cm','Le contour est mis à l\'échelle sur cette largeur et cette hauteur.'),F_('H','Hauteur',5,200,0.1,'cm'),F_('t','Épaisseur',0.3,15,0.1,'mm')]);
+    const g=ui.group('Pieds',[F_('fx1','Pied gauche : distance du bord',0,100,0.1,'cm'),F_('fx2','Pied droit : distance du bord',0,150,0.1,'cm'),F_('fF','Devant le panneau',0.5,40,0.1,'cm'),F_('fB','Derrière le panneau',0,40,0.1,'cm'),F_('fH','Hauteur des pieds',1,40,0.1,'cm')]);
+    ui.choice(g,'fShape',[['rect','Pieds rectangulaires'],['ellipse','Pieds ovales']]);
+    const pg=ui.group('Finition',[]); ui.choice(pg,'pel',[['aucun','Sans pelliculage'],['mat','Pellic. mat'],['brillant','Pellic. brillant']]);
+  },
+  specs:P=>[['Principe','silhouette de table : panneau découpé recto-verso, 2 pieds à fentes'],['Panneau',`${fmt(P.W)} × ${fmt(P.H)} cm, ép. ${fmt(P.t)} mm`],['Pieds',`${P.fShape==='ellipse'?'ovales':'rectangulaires'}, ${fmt(P.fF+P.fB+P.t/10)} × ${fmt(P.fH)} cm`],['Pelliculage',{mat:'mat',brillant:'brillant'}[P.pel]||'sans']],
+  build(P,G,K,V){
+    const MD=K.part(P,'dos'), MP=K.part(P,'pieds'), t=Math.max(P.t,0.2)/10, W=P.W, H=P.H, fF=P.fF, fB=P.fB, fH=Math.min(P.fH,H), Dt=fF+t+fB;
+    const core=new THREE.Group(), parts=[];
+    const ENV=K._pelEnv||(K._pelEnv=(()=>{const c=document.createElement('canvas'); c.width=512; c.height=256; const x=c.getContext('2d');
+      const g=x.createLinearGradient(0,0,0,256); g.addColorStop(0,'#6d7076'); g.addColorStop(.5,'#45474c'); g.addColorStop(1,'#202124'); x.fillStyle=g; x.fillRect(0,0,512,256);
+      x.fillStyle='#ffffff'; x.filter='blur(2px)'; for(let a=0;a<512;a+=46){x.globalAlpha=.55+.45*Math.random(); x.fillRect(a,20+Math.random()*30,10+Math.random()*14,120+Math.random()*60);} x.globalAlpha=1; x.filter='none';
+      const tt=new THREE.CanvasTexture(c); tt.mapping=THREE.EquirectangularReflectionMapping; return tt;})());
+    const PEL={aucun:{specular:0x202020,shininess:16},mat:{specular:0x000000,shininess:1},brillant:{specular:0x2c2c2c,shininess:140,envMap:ENV,reflectivity:0.14,combine:THREE.MixOperation}}[P.pel]||{specular:0x202020,shininess:16};
+    const pc=new Map(), pel=m=>{if(!m) return m; if(!pc.has(m)){pc.set(m,new THREE.MeshPhongMaterial(Object.assign({map:m.map||null,color:m.map?(P.pel==='mat'?0xE9E9E9:0xFFFFFF):(m.color?m.color.getHex():0xF8F7F3),emissive:P.pel==='mat'?0x161616:0x000000},PEL)));} return pc.get(m);};
+    /* contour relevé sur le tracé (cm, origine en bas à gauche), mis à l'échelle sur W × H */
+    const sil=Array.isArray(P.sil)&&P.sil.length>2?P.sil:[[0,0],[W,0],[W,H],[0,H]];
+    const sw=Math.max(...sil.map(p=>p[0]))||1, sh=Math.max(...sil.map(p=>p[1]))||1, sx=W/sw, sy=H/sh;
+    const sp=new THREE.Shape(); sil.forEach(([u,v],i)=>i?sp.lineTo(u*sx,v*sy):sp.moveTo(u*sx,v*sy)); sp.closePath();
+    const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:1});
+    const uv=geo.attributes.uv, pos=geo.attributes.position, g0=geo.groups[0];
+    for(let k=g0.start;k<g0.start+g0.count;k++){const vi=geo.index?geo.index.getX(k):k; let u=pos.getX(vi)/W; if(pos.getZ(vi)<t/2) u=1-u; uv.setXY(vi,u,pos.getY(vi)/H);} uv.needsUpdate=true; /* verso lu « tel que vu de derrière » */
+    const sl=s=>s?Object.assign({},s,{fit:'contain'}):s, face=pel(K.img(sl(V.dos),W,H)||MD.top), back=pel(K.img(sl(V.dosV),W,H)||MD.top);
+    { const n=g0.count/2, gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,n,2); geo.addGroup(g0.start+n,n,0); geo.addGroup(gS.start,gS.count,1); } /* z=0 : verso, z=t : recto */
+    const pm=new THREE.Mesh(geo,[face,MD.side,back]); pm.position.set(0,0,-fF-t); core.add(pm);
+    const pe=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MD.edge); pe.position.copy(pm.position); core.add(pe);
+    /* pieds : plaques perpendiculaires au panneau, traversant les fentes */
+    const fm=pel(MP.top).clone(); if(P.footColor) fm.color=new THREE.Color(P.footColor); const fs=Object.assign(pel(MP.side).clone(),{color:fm.color.clone().multiplyScalar(0.94)});
+    const fs2=new THREE.Shape(); if(P.fShape==='ellipse'){for(let i=0;i<=48;i++){const a=i/48*Math.PI*2; fs2[i?'lineTo':'moveTo'](Dt/2+Dt/2*Math.cos(a),fH/2+fH/2*Math.sin(a));}} else {fs2.moveTo(0,0); fs2.lineTo(Dt,0); fs2.lineTo(Dt,fH); fs2.lineTo(0,fH); fs2.closePath();}
+    [P.fx1,P.fx2].forEach(x=>{const fg=new THREE.ExtrudeGeometry(fs2,{depth:t,bevelEnabled:false,curveSegments:24}), fmesh=new THREE.Mesh(fg,[fm,fs]); fmesh.rotation.y=Math.PI/2; fmesh.position.set(x-t/2,0,0); core.add(fmesh);
+      const fe=new THREE.LineSegments(new THREE.EdgesGeometry(fg,30),MP.edge); fe.rotation.copy(fmesh.rotation); fe.position.copy(fmesh.position); core.add(fe);});
+    /* fentes (traits de coupe) au pied du panneau */
+    const slit=new THREE.MeshBasicMaterial({color:0x2a2724}); [P.fx1,P.fx2].forEach(x=>{const b=new THREE.Mesh(new THREE.BoxGeometry(t+0.02,Math.min(2.1,fH/2),0.03),slit); b.position.set(x,Math.min(2.1,fH/2)/2,-fF+0.015); core.add(b);});
+    /* stabilité : centre de gravité du contour */
+    let A=0,cy=0; for(let i=0;i<sil.length;i++){const [x1,y1]=sil[i],[x2,y2]=sil[(i+1)%sil.length],c=x1*y2-x2*y1; A+=c; cy+=(y1+y2)*c;} cy=Math.abs(A)>1e-6?Math.abs(cy/(3*A))*sy:H*0.45;
+    const area=Math.abs(A)/2*sx*sy, mass=area*t*MD.rho+2*Dt*fH*t*MP.rho*0.9;
+    const back_=Math.atan2(fB+t/2,cy)*180/Math.PI, fwd=Math.atan2(fF+t/2,cy)*180/Math.PI;
+    const sz=Math.max(1.6,Math.max(W,Dt,H)/24), o=sz*1.6;
+    const dims=new THREE.Group(); dims.userData.isDims=true; dims.visible=G.showDims; core.add(dims);
+    K.dim(dims,[0,0,o],[W,0,o],[0,0,1],fmt(W)+' cm',[W/2,0,o+sz*1.4],sz);
+    K.dim(dims,[-o,0,-Dt],[-o,H,-Dt],[1,0,0],fmt(H)+' cm',[-o-sz*2.6,H/2,-Dt],sz);
+    K.dim(dims,[W+o,0,0],[W+o,0,-Dt],[1,0,0],fmt(Dt)+' cm',[W+o+sz*2.6,0,-Dt/2],sz);
+    const al=[]; if(back_<8) al.push(`Bascule arrière dès ${Math.round(back_)}° : allonger les pieds derrière le panneau.`); if(fwd<8) al.push(`Bascule avant dès ${Math.round(fwd)}° : allonger les pieds devant.`);
+    if(Math.abs(P.fx1-P.fx2)<1||Math.max(P.fx1,P.fx2)>W) al.push('Pieds hors du panneau ou trop proches : vérifier leurs positions.');
+    return {core,fill:{per:0,cap:0,facings:0,total:0,unit:'pile',units:'Piles'},
+      slotSizes:{dos:[W,H],dosV:[W,H]}, bounds:{x0:0,x1:W,z0:-Dt,z1:0,yBase:0,Htot:H},
+      pad:{right:o+sz*5+6,left:o+sz*3+6,front:o+4},
+      kv:[['Hors-tout L × P × H',`${fmt(W)} × ${fmt(Dt)} × ${fmt(H)}`,true],['Épaisseur',`${fmt(P.t)} mm`],['Poids',`${Math.round(mass)} g`],['Bascule arr./av.',`${Math.round(back_)}° / ${Math.round(fwd)}°`]],
+      measures:[['Panneau',`${fmt(W)} × ${fmt(H)} cm`],['Pieds',`${fmt(Dt)} × ${fmt(fH)} cm, à ${fmt(P.fx1)} et ${fmt(P.fx2)} cm du bord gauche`]],
       alerts:al};
   }
 };
