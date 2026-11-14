@@ -523,6 +523,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
         <button data-cat="tourniquet" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 2v20M7 21h10"/><rect x="6" y="5" width="12" height="5" rx="1"/><rect x="6" y="12" width="12" height="5" rx="1"/></svg>Tourniquet</button>
         <button data-cat="stoprayon" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="9" rx="1.5"/><path d="M8 14v5h8v-5"/></svg>Stop pile</button>
         <button data-cat="sol" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M8 21l1-18h6l1 18zM8.6 9h6.8M8.3 14h7.4"/></svg>Présentoir de sol</button>
+        <button data-cat="silhouette" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M6 19V8a6 6 0 0112 0v11z"/><path d="M8 19v2M16 19v2M5 21h5M14 21h5"/></svg>Silhouette</button>
       </div>
       <h4>Base de départ</h4>
       <div class="modelpick" id="modelpick" role="radiogroup" aria-label="Base de départ"></div>
@@ -2238,8 +2239,8 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(ST));}catch(e){}};
 const curP=()=>ST.P[ST.type], G=ST.G;
 
 /* Visuels : images importées (mémorisées dans le navigateur via IndexedDB) */
-const VIS={'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'porteflyer-30':{covers:[]},'colonne-xd-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
-const curV=()=>VIS[ST.type];
+const VIS={'silhouette-table':{covers:[]},'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'porteflyer-30':{covers:[]},'colonne-xd-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
+const curV=()=>VIS[ST.type]||(VIS[ST.type]={covers:[]});
 const IDB={
   db:null,
   open(){return new Promise(res=>{try{const r=indexedDB.open('plvconf',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>{this.db=r.result; res(this.db);}; r.onerror=()=>res(null);}catch(e){res(null);}});},
