@@ -1878,8 +1878,8 @@ MODELS['colonne-jade-4']={
     const kraftW=K._kraftW||(K._kraftW=(()=>{const t=kraftTex.clone(); t.needsUpdate=true; t.repeat.set(1/30,1/30); return t;})());
     const kraftMat=(dark,world)=>new THREE.MeshLambertMaterial({map:world?kraftW:kraftTex,color:dark?0xE6DCCC:0xFFFFFF});
     const BRUTX=KRAFT?kraftMat(true,true):null;
-    const BRUT=KRAFT?kraftMat(true):new THREE.MeshLambertMaterial({color:0xE3E5E7}), BRUTW=new THREE.MeshLambertMaterial({color:0xE3E5E7}), coatC=new Map();
-    const brut=M=>(M&&M.top&&M.top.color&&M.top.color.getHex()===0xB39472)?BRUT:(KRAFT&&M&&M.top&&M.top.color?BRUTW:BRUT); /* verso kraft seulement pour les pièces en kraft */
+    const BRUT=KRAFT?kraftMat(true):null /* null = verso blanc non couché (mbBrut, à l'échelle de la face) */, coatC=new Map();
+    const brut=(M,w,h)=>(M&&M.top&&M.top.color&&M.top.color.getHex()===0xB39472&&BRUT)?BRUT:(KRAFT&&!(M&&M.top&&M.top.color)?BRUT:mbBrut(w||30,h||30)); /* verso kraft seulement pour les pièces en kraft ; sinon blanc non couché strié */
     const coat=M=>{if(!coatC.has(M)&&M&&M.top&&M.top.color&&M.top.color.getHex()===0xB39472){coatC.set(M,kraftMat(false));} if(!coatC.has(M)){let c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; if(c===0xF6F5F1) c=0xEEF1F5;
       coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:(KRAFT||c===0xEEEEE9)?0x0a0a0a:0x262626,shininess:(KRAFT||c===0xEEEEE9)?6:42,map:M.top&&M.top.map||null}));} return coatC.get(M);};
     // chant : coupe de microbis EE (couché blanc / cannelure E / papier milieu / cannelure E / blanc brut), texture dessinée ici, sans image
@@ -1891,7 +1891,7 @@ MODELS['colonne-jade-4']={
     const PER=0.64; // 2 ondes de cannelure E (~3,2 mm) par motif
     const chant=(len,thick,rot)=>{const tx=chantTex.clone(); tx.needsUpdate=true; if(rot){tx.center.set(.5,.5); tx.rotation=Math.PI/2;} tx.repeat.set(len/PER,thick/(t)); return new THREE.MeshLambertMaterial({map:tx});};
     // f = indice de la face couchée (2 +y, 3 -y, 4 +z, 5 -z) ; la face opposée est brute, les 4 autres sont des chants cannelés
-    const mb=(M,f,img,dims)=>{const opp={0:1,1:0,2:3,3:2,4:5,5:4}[f], a=new Array(6); a[f]=img||coat(M); a[opp]=brut(M); if(f<2){for(let i=0;i<6;i++) if(!a[i]) a[i]=CHANT; return a;}
+    const mb=(M,f,img,dims)=>{const opp={0:1,1:0,2:3,3:2,4:5,5:4}[f], a=new Array(6), [Dx,Dy,Dz]=dims||[30,30,30]; a[f]=img||coat(M); a[opp]=f<2?brut(M,Dz,Dy):f<4?brut(M,Dx,Dz):brut(M,Dx,Dy); if(f<2){for(let i=0;i<6;i++) if(!a[i]) a[i]=CHANT; return a;}
       const [dx,dy,dz]=dims||[10,10,10], th=f<4?dy:dz;
       for(let i=0;i<6;i++) if(!a[i]){ // longueur du chant le long de u ; rot si l'épaisseur tombe sur u (faces ±x d'un panneau mince en z)
         if(f>=4) a[i]=i<2?chant(dy,th,true):chant(dx,th,false); else a[i]=i<2?chant(dz,th,false):chant(dx,th,false);}
@@ -1901,7 +1901,7 @@ MODELS['colonne-jade-4']={
     const dbl=(M,dims)=>[0,1,2,3,4,5].map(()=>coat(M)); // tablette pliée en 2 : tous les bords sont des plis // tablette pliée en 2 : couché dessus et dessous
     const cut=(g,sh,depth,xIn,sg,M,im,D,Hh,inner)=>{
       const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false,curveSegments:16});
-      const m=new THREE.Mesh(geo,[BRUTX||BRUT,CHANT]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
+      const m=new THREE.Mesh(geo,[BRUTX||mbBrut(),CHANT]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),M.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); g.add(e);
       {const pg=new THREE.ShapeGeometry(sh,16), pos=pg.attributes.position, uv=pg.attributes.uv;
         for(let i=0;i<pos.count;i++){const x=pos.getX(i); uv.setXY(i,0.006+0.988*(sg<0?(x+D)/D:x/D),0.004+0.992*pos.getY(i)/Hh);} uv.needsUpdate=true;
@@ -1941,7 +1941,7 @@ MODELS['colonne-jade-4']={
       { const gp=new THREE.Shape(), r=1.5, y1=t2+2.5;
         gp.moveTo(-2,t2-4); gp.lineTo(2,t2-4); gp.lineTo(2,t2); gp.lineTo(4.5,t2); gp.lineTo(4.5,y1-r); gp.quadraticCurveTo(4.5,y1,4.5-r,y1);
         gp.lineTo(-4.5+r,y1); gp.quadraticCurveTo(-4.5,y1,-4.5,y1-r); gp.lineTo(-4.5,t2); gp.lineTo(-2,t2); gp.closePath();
-        const gg=new THREE.ExtrudeGeometry(gp,{depth:t,bevelEnabled:false,curveSegments:6}), gm=new THREE.Mesh(gg,[BRUT,CHANT]);
+        const gg=new THREE.ExtrudeGeometry(gp,{depth:t,bevelEnabled:false,curveSegments:6}), gm=new THREE.Mesh(gg,[BRUT||mbBrut(),CHANT]);
         gm.position.set(0,s0,zb-0.1-t); body.add(gm);
         const ge=new THREE.LineSegments(new THREE.EdgesGeometry(gg,30),MS.edge); ge.position.copy(gm.position); body.add(ge); } }
       addM((shW*wideD+W*(shD-wideD)+6.8*tabL)*t2*MS.rho+60*t*MS.rho,s0,shO-shD/2);
@@ -1959,8 +1959,8 @@ MODELS['colonne-jade-4']={
       const hg=new THREE.Group(); hg.position.set(0,yT,zT); core.add(hg);
       const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), cimD=V.frontonCD?K.img(V.frontonCD,hD,hH):cim;
       const al=m=>{if(!m) return null; const c=m.clone(); c.alphaTest=0.5; return c;};
-      const back=m=>{const im=m&&m.map&&m.map.image; if(!im||!im.width) return new THREE.MeshLambertMaterial({color:0xE3E5E7,side:THREE.BackSide});
-        const cv=document.createElement('canvas'); cv.width=im.width; cv.height=im.height; const x=cv.getContext('2d'); x.drawImage(im,0,0); x.globalCompositeOperation='source-in'; x.fillStyle='#E3E5E7'; x.fillRect(0,0,cv.width,cv.height);
+      const back=m=>{const im=m&&m.map&&m.map.image; if(!im||!im.width) return mbBrut(30,hH,THREE.BackSide);
+        const cv=document.createElement('canvas'); cv.width=im.width; cv.height=im.height; const x=cv.getContext('2d'); x.drawImage(im,0,0); x.globalCompositeOperation='source-in'; const pc=document.createElement('canvas'); pc.width=pc.height=Math.max(8,Math.round(30*cv.height/hH)); pc.getContext('2d').drawImage(MB_BRUT_C,0,0,pc.width,pc.height); x.fillStyle=x.createPattern(pc,'repeat'); x.fillRect(0,0,cv.width,cv.height); /* verso non couché strié, découpé comme le visuel */
         return new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide});};
       const pl=(w,m,x,z,ry)=>{const g=new THREE.PlaneGeometry(w,hH), q=new THREE.Group(); q.add(new THREE.Mesh(g,al(m)||coat(MF))); q.add(new THREE.Mesh(g,back(m))); q.position.set(x,hH/2,z); q.rotation.y=ry; hg.add(q);};
       if(P.hMode==='rect'){ /* fronton boîte 3 faces rectangulaire, en épaisseur ; profondeur = dessus du corps */
@@ -2040,7 +2040,7 @@ MODELS['porteflyer-30']={
       const wave=(y0,h)=>{x.strokeStyle='#E2BC8A'; x.lineWidth=5; x.beginPath(); for(let i=0;i<=128;i++){const y=y0+h/2+Math.sin(i/128*Math.PI*4)*(h/2-2); i?x.lineTo(i,H-y):x.moveTo(i,H-y);} x.stroke();};
       wave(6,23); wave(35,23); const tx=new THREE.CanvasTexture(c); tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.anisotropy=4; return tx;})());
     const chW=K._chW||(K._chW=(()=>{const tx=chTex.clone(); tx.needsUpdate=true; tx.repeat.set(1/0.64,1/(P.t/10)); return new THREE.MeshLambertMaterial({map:tx});})());
-    const core=new THREE.Group(), ext=M=>new THREE.MeshPhongMaterial({color:M.top&&M.top.color?M.top.color.getHex():0xffffff,specular:0x222222,shininess:30}), brut=new THREE.MeshLambertMaterial({color:0xE3E5E7});
+    const core=new THREE.Group(), ext=M=>new THREE.MeshPhongMaterial({color:M.top&&M.top.color?M.top.color.getHex():0xffffff,specular:0x222222,shininess:30}), brut=mbBrut(); /* verso microbis non couché (stries) */
     // dos à coins arrondis (extrusion)
     const r=Math.min(P.r,W/2,H/2), s=new THREE.Shape(); s.moveTo(-W/2,0); s.lineTo(W/2,0); s.lineTo(W/2,H-r); s.quadraticCurveTo(W/2,H,W/2-r,H); s.lineTo(-W/2+r,H); s.quadraticCurveTo(-W/2,H,-W/2,H-r); s.closePath();
     const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:12}); const back=new THREE.Mesh(g,[brut,chW]); back.position.z=-t; core.add(back);
@@ -3074,6 +3074,19 @@ function label(text,size,bold){
 function line(g,a,b){g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),MAT.dim));}
 function roundRect(u0,u1,v0,v1,r){const s=new THREE.Shape(); s.moveTo(u0+r,v0); s.lineTo(u1-r,v0); s.quadraticCurveTo(u1,v0,u1,v0+r); s.lineTo(u1,v1-r); s.quadraticCurveTo(u1,v1,u1-r,v1); s.lineTo(u0+r,v1); s.quadraticCurveTo(u0,v1,u0,v1-r); s.lineTo(u0,v0+r); s.quadraticCurveTo(u0,v0,u0+r,v0); return s;}
 function capsule(len,w){const r=w/2,s=new THREE.Shape(); s.moveTo(-r,0); s.lineTo(-r,len); s.absarc(0,len,r,Math.PI,0,true); s.lineTo(r,0); s.absarc(0,0,r,0,Math.PI,true); return s;}
+
+/* Verso microbis non couché : blanc mat, fibres, fines stries de cannelure (texture dessinée, sans image).
+   mbBrut(w,h) : matériau pour une face de w × h cm (UV 0..1) ; mbBrut() : UV en cm (extrusions). Pas des stries constant ≈ 3,5 mm. */
+const MB_BRUT_C=(()=>{const c=document.createElement('canvas'); c.width=c.height=512; const x=c.getContext('2d'); x.fillStyle='#F2F2F0'; x.fillRect(0,0,512,512);
+  for(let i=0;i<14000;i++){const v=Math.random(); x.fillStyle=v<.5?`rgba(140,140,138,${.06+Math.random()*.1})`:`rgba(255,255,252,${.3+Math.random()*.3})`; x.save(); x.translate(Math.random()*512,Math.random()*512); x.rotate(Math.random()*Math.PI); x.fillRect(0,0,2+Math.random()*8,.8); x.restore();}
+  for(let i=0;i<2500;i++){x.fillStyle=`rgba(${Math.random()<.5?'135,135,132':'255,255,255'},${.12+Math.random()*.25})`; x.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*1.5,1+Math.random()*1.5);}
+  for(let y=0;y<512;y+=6){x.fillStyle='rgba(110,112,115,0.08)'; x.fillRect(0,y,512,2); x.fillStyle='rgba(255,255,255,0.2)'; x.fillRect(0,y+3,512,1);}
+  return c;})();
+const mbBrutCache={};
+function mbBrut(w,h,side){const k=w?(Math.round(w*2)/2)+'x'+(Math.round(h*2)/2):'world'; const key=k+(side||'');
+  if(!mbBrutCache[key]){const t=new THREE.CanvasTexture(MB_BRUT_C); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; if(w) t.repeat.set(Math.max(w,1)/30,Math.max(h,1)/30); else t.repeat.set(1/30,1/30);
+    mbBrutCache[key]=new THREE.MeshLambertMaterial({map:t,color:0xFFFFFF,...(side?{side}:{})});}
+  return mbBrutCache[key];}
 
 /* Tranches de livre : fines lignes de feuilles, légère irrégularité, ombre près des couvertures (texture dessinée, sans image) */
 const PAGES=(()=>{const c=document.createElement('canvas'); c.width=256; c.height=64; const x=c.getContext('2d');
