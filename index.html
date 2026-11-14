@@ -513,7 +513,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
       <div class="catgrid" role="group" aria-label="Catégorie de PLV">
         <button data-cat="comptoir" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 9h18v3H3zM5 12v8M19 12v8"/><path d="M6 9V5h4v4M11 9V4h3v5"/></svg>Comptoir</button>
         <button data-cat="tourniquet" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 2v20M7 21h10"/><rect x="6" y="5" width="12" height="5" rx="1"/><rect x="6" y="12" width="12" height="5" rx="1"/></svg>Tourniquet</button>
-        <button data-cat="stoprayon" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="9" rx="1.5"/><path d="M8 14v5h8v-5"/></svg>Stop rayon</button>
+        <button data-cat="stoprayon" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="9" rx="1.5"/><path d="M8 14v5h8v-5"/></svg>Stop pile</button>
         <button data-cat="sol" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M8 21l1-18h6l1 18zM8.6 9h6.8M8.3 14h7.4"/></svg>Présentoir de sol</button>
       </div>
       <h4>Base de départ</h4>
@@ -716,7 +716,7 @@ const F_=(k,label,min,max,step,u,help)=>({k,label,min,max,step,u,help});
 const CATS={
   comptoir:{label:'Comptoir',models:[['comptoir-bois'],['comptoir-carton'],['porteflyer-30']]},
   tourniquet:{label:'Tourniquet',models:[['tourniquet-bois'],['tourniquet-metal'],['tourniquet-1001'],['tourniquet-moulinet']]},
-  stoprayon:{label:'Stop rayon',models:[['stoprayon-carte']]},
+  stoprayon:{label:'Stop pile pliant',models:[['stoprayon-carte']]},
   sol:{label:'Présentoir de sol',models:[['colonne-jade-4'],['colonne-xd-4']]}
 };
 const partsOf=(m,P)=>typeof m.parts==='function'?m.parts(P):m.parts;
@@ -1744,65 +1744,87 @@ MODELS['tourniquet-metal']={
   }
 };
 
-/* ---------- Stop rayon carte (dos + fond pliés, 2 joues galbées, livres à plat) ---------- */
+/* ---------- Stop pile pliant – carte 500 g (1 découpe : dos + 2 joues galbées + fond, pattes des joues passées sous le fond et ressorties par 2 fentes) ---------- */
 MODELS['stoprayon-carte']={
-  cat:'stoprayon', label:'Stop rayon carte', desc:'Dos, fond et joues en carte, livres à plat', flat:true,
-  defaults:{W:22,D:22,H:50,t:0.65,jH:22,jD:16,jShape:'arrondie',flatOri:'portrait',
+  cat:'stoprayon', label:'Stop pile pliant – carte 500 g', desc:'Une seule découpe : dos, joues galbées, fond ; pattes des joues glissées sous le fond et ressorties par 2 fentes', flat:true,
+  defaults:{W:15.2,D:22,H:41,t:0.65,jH:18,jD:13.8,jShape:'arrondie',flatOri:'portrait',tabW:3.5,tabL:5,slotIn:1,pel:'aucun',verso:'blanc',
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:5,mat_dos:'carte-500',mat_fond:'carte-500',mat_joues:'carte-500'},
   parts:[{key:'dos',label:'Dos',short:'dos',use:'panel'},{key:'fond',label:'Fond',short:'fond',use:'panel'},{key:'joues',label:'Joues',short:'joues',use:'panel'}],
   slots:[{key:'dos',label:'Dos',sub:'face avant',short:'dos'},{key:'joues',label:'Joues',sub:'les deux côtés',short:'joues'},{key:'fond',label:'Fond',sub:'dessus',short:'fond'}],
   structure(ui){
-    ui.group('Dos et fond',[F_('W','Largeur',8,80,0.5,'cm'),F_('H','Hauteur du dos',8,150,0.5,'cm'),F_('D','Profondeur du fond',4,50,0.5,'cm'),
+    ui.group('Dos et fond',[F_('W','Largeur',8,80,0.1,'cm'),F_('H','Hauteur du dos',8,150,0.5,'cm'),F_('D','Profondeur du fond',4,50,0.1,'cm'),
       F_('t','Épaisseur de la carte',0.3,3,0.05,'mm','Carte 500 g/m² ≈ 0,65 mm.')]);
     const j=ui.group('Joues',[]);
     ui.choice(j,'jShape',[['arrondie','Galbée'],['droite','Droite']]);
-    [F_('jH','Hauteur des joues',0,100,0.5,'cm','Au niveau du dos.'),F_('jD','Profondeur des joues',0,50,0.5,'cm','Depuis le dos vers l\'avant.')].forEach(f=>j.appendChild(numField(f,curP)));
+    [F_('jH','Hauteur des joues',0,100,0.5,'cm','Au niveau du dos.'),F_('jD','Profondeur des joues',0,50,0.1,'cm','Depuis le dos vers l\'avant.'),
+     F_('tabW','Largeur des pattes',1,8,0.1,'cm','Au bout avant de chaque joue.'),F_('tabL','Longueur des pattes',2,10,0.1,'cm'),F_('slotIn','Fentes : retrait du bord',0.3,4,0.1,'cm')].forEach(f=>j.appendChild(numField(f,curP)));
+    const pg=ui.group('Finition',[]); ui.choice(pg,'pel',[['aucun','Sans pelliculage'],['mat','Pellic. mat'],['brillant','Pellic. brillant']]); ui.choice(pg,'verso',[['blanc','Verso blanc'],['kraft','Verso brun (kraft)']]);
   },
-  specs:P=>[['Largeur',fmt(P.W)+' cm'],['Hauteur du dos',fmt(P.H)+' cm'],['Profondeur du fond',fmt(P.D)+' cm'],['Carte',fmt(P.t)+' mm'],
-    ['Joues',`${P.jShape==='droite'?'droites':'galbées'}, ${fmt(P.jH)} × ${fmt(P.jD)} cm`],['Livres',bookLabel(P)+', à plat'],['Sens',P.flatOri==='paysage'?'hauteur dans la largeur':'hauteur dans la profondeur']],
+  specs:P=>[['Principe','stop pile pliant : une seule découpe en carte 500 g, montée sans colle'],['Largeur',fmt(P.W)+' cm'],['Hauteur du dos',fmt(P.H)+' cm'],['Profondeur du fond',fmt(P.D)+' cm'],['Carte',`500 g, ${fmt(P.t)} mm`],
+    ['Pelliculage',{mat:'mat',brillant:'brillant'}[P.pel]||'sans'],['Verso',P.verso==='kraft'?'brun (kraft)':'blanc'],
+    ['Joues',`${P.jShape==='droite'?'droites':'galbées'}, ${fmt(P.jH)} × ${fmt(P.jD)} cm, pattes ${fmt(P.tabW)} × ${fmt(P.tabL)} cm`],['Livres',bookLabel(P)+', à plat']],
   build(P,G,K,V){
     const MD=K.part(P,'dos'), MF=K.part(P,'fond'), MJ=K.part(P,'joues');
-    const t=P.t/10, W=P.W, D=P.D, H=P.H, jH=Math.min(P.jH,H), jD=Math.min(P.jD,D);
+    const t=Math.max(P.t,0.3)/10, W=P.W, D=P.D, H=P.H, jH=Math.min(P.jH,H), jD=Math.min(P.jD,D), tw=Math.min(P.tabW,jD), tl=P.tabL, si=Math.min(P.slotIn,W/2-1);
     const core=new THREE.Group(), parts=[];
     const box=(g,x0,x1,y0,y1,d0,d1,mat,edges,rho)=>K.box(g,x0,x1,y0,y1,-d1,-d0,mat,edges,rho?{parts,rho}:null);
-    // fond (dessus imprimable) et dos
+    /* pelliculage : sans = carte couchée satinée ; mat = velouté, voile léger, aucun reflet ; brillant = reflets nets du studio (carte d'environnement dessinée) */
+    const ENV=K._pelEnv||(K._pelEnv=(()=>{const c=document.createElement('canvas'); c.width=512; c.height=256; const x=c.getContext('2d');
+      const g=x.createLinearGradient(0,0,0,256); g.addColorStop(0,'#6d7076'); g.addColorStop(.5,'#45474c'); g.addColorStop(1,'#202124'); x.fillStyle=g; x.fillRect(0,0,512,256);
+      x.fillStyle='#ffffff'; x.filter='blur(2px)'; for(let a=0;a<512;a+=46){x.globalAlpha=.55+.45*Math.random(); x.fillRect(a,20+Math.random()*30,10+Math.random()*14,120+Math.random()*60);} x.globalAlpha=1; x.filter='none'; /* fenêtres / softbox : reflets en bandes */
+      const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping; return t;})());
+    const PEL={aucun:{specular:0x202020,shininess:16},mat:{specular:0x000000,shininess:1},brillant:{specular:0xffffff,shininess:160,envMap:ENV,reflectivity:0.24,combine:THREE.MixOperation}}[P.pel]||{specular:0x202020,shininess:16};
+    const pc=new Map(), pel=m=>{if(!m) return m; if(!pc.has(m)){const c=new THREE.MeshPhongMaterial(Object.assign({map:m.map||null,color:m.map?(P.pel==='mat'?0xE9E9E9:0xFFFFFF):(m.color?m.color.getHex():0xF8F7F3),
+      emissive:P.pel==='mat'?0x161616:0x000000,transparent:!!m.transparent,alphaTest:m.alphaTest||0},PEL)); pc.set(m,c);} return pc.get(m);}; /* mat : voile laiteux (contraste un peu adouci) */
+    const KV=P.verso==='kraft', vb=(w,h,sd)=>{const m=mbBrut(w,h,sd); if(!KV) return m; const k='k'+(w||0)+'x'+(h||0)+(sd||''); return mbBrutCache[k]||(mbBrutCache[k]=Object.assign(m.clone(),{color:new THREE.Color(0xB08A62)}));}, verso=vb(), y0=t, yF=2*t; /* fond posé sur les pattes (y 0 → t) */
+    // fond : dessus imprimé (recto), dessous verso
     const fi=K.img(V.fond,W,D), di=K.img(V.dos,W,H);
-    box(core,0,W,0,t,0,D,K.faces(MF.side,{2:fi||MF.top}),MF.edge,MF.rho);
-    box(core,0,W,0,H,D,D+t,K.faces(MD.side,{4:di||MD.side}),MD.edge,MD.rho);
-    // joues
+    box(core,0,W,y0,yF,0,D,K.faces(MF.side,{2:pel(fi||MF.top),3:verso}),MF.edge,MF.rho);
+    // dos : recto vers l'avant, plié en bas sur le fond (pli arrondi)
+    box(core,-t,W+t,y0,H,D,D+t,K.faces(MD.side,{4:pel(di||MD.top),5:verso}),MD.edge,MD.rho);
+    // fentes (2 traits de coupe) : la patte ressort par la fente
+    const slit=new THREE.MeshBasicMaterial({color:0x2a2724});
+    [si,W-si].forEach(x=>{box(core,x-0.04,x+0.04,yF,yF+0.01,D-jD,D-jD+tw+0.1,slit,null); box(core,x-0.04,x+0.04,y0-0.01,y0,D-jD,D-jD+tw+0.1,slit,null);});
+    // joues galbées (recto à l'intérieur) + pattes
     if(jH>0.2&&jD>0.2){
-      const sp=new THREE.Shape(); sp.moveTo(D,t); sp.lineTo(D,jH);
-      if(P.jShape==='droite') sp.lineTo(D-jD,t);
-      else for(let i=1;i<=24;i++){const a=i/24*Math.PI/2; sp.lineTo(D-jD*Math.sin(a),t+(jH-t)*Math.cos(a));}
-      sp.lineTo(D,t);
-      let area=P.jShape==='droite'?jD*jH/2:Math.PI*jD*jH/4;
-      [0,W-t].forEach((x,i)=>{
-        const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:24});
-        let mats=[MJ.side,MJ.side];
-        const im=K.img(V.joues,jD,jH);
-        if(im){const uv=geo.attributes.uv,pos=geo.attributes.position,g0=geo.groups[0];
-          for(let k=g0.start;k<g0.start+g0.count;k++){let u=(pos.getX(k)-(D-jD))/jD; if(i===0) u=1-u; uv.setXY(k,u,pos.getY(k)/jH);} uv.needsUpdate=true; mats=[im,MJ.side];}
-        const m=new THREE.Mesh(geo,mats); m.rotation.y=Math.PI/2; m.position.set(x,0,0); core.add(m);
+      const sp=new THREE.Shape(); sp.moveTo(D,yF); sp.lineTo(D,yF+jH);
+      if(P.jShape==='droite') sp.lineTo(D-jD,yF); else for(let i=1;i<=32;i++){const a=i/32*Math.PI/2; sp.lineTo(D-jD*Math.sin(a),yF+jH*Math.cos(a));}
+      sp.lineTo(D,yF);
+      const area=P.jShape==='droite'?jD*jH/2:Math.PI*jD*jH/4, im=K.img(V.joues,jD,jH);
+      const rr=Math.min(0.6,tw/3), tabTop=Math.max(0.5,tl-(yF+t)-si-2*t); /* longueur ressortie sur le fond */
+      [[-t,1],[W,-1]].forEach(([x,sg])=>{
+        const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:32});
+        const uv=geo.attributes.uv,pos=geo.attributes.position; for(let k=0;k<pos.count;k++){let u=(pos.getX(k)-(D-jD))/jD; if(sg<0) u=1-u; uv.setXY(k,u,(pos.getY(k)-yF)/jH);} uv.needsUpdate=true;
+        const face=pel(im||MJ.top), m=new THREE.Mesh(geo,[face,MJ.side]); m.rotation.y=Math.PI/2; m.position.set(x,0,0); core.add(m);
         const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MJ.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); core.add(e);
         parts.push({m:area*t*MJ.rho,y:jH/3,d:D-jD/3});
+        // patte : descend le long du chant du fond, passe dessous, remonte dans la fente, ressort à plat sur le fond (vers l'intérieur)
+        const dA=D-jD, dB=D-jD+tw, xo=sg>0?x:x+t, xi=sg>0?si:W-si, Lx=(a,b)=>sg>0?[a,b]:[W-b,W-a];
+        box(core,x,x+t,0,yF,dA,dB,K.faces(verso,{[sg>0?1:0]:face}),MJ.edge);                                   // descente
+        {const [a,b]=Lx(-t,si+t); box(core,a,b,0,y0,dA,dB,K.faces(verso,{2:face}),MJ.edge);}                       // sous le fond
+        {const [a,b]=sg>0?[si,si+t]:[W-si-t,W-si]; box(core,a,b,0,yF+t,dA,dB,verso,MJ.edge);}      // dans la fente
+        { const s=new THREE.Shape(), L=tabTop; s.moveTo(0,0); s.lineTo(L-rr,0); s.quadraticCurveTo(L,0,L,rr); s.lineTo(L,tw-rr); s.quadraticCurveTo(L,tw,L-rr,tw); s.lineTo(0,tw); s.closePath(); /* bout arrondi */
+          const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:8}), tm=new THREE.Mesh(g,[vb(30,30,THREE.DoubleSide),Object.assign(MJ.side.clone(),{side:THREE.DoubleSide})]); /* face visible = verso de la patte */
+          tm.rotation.x=Math.PI/2; tm.scale.x=sg; tm.position.set(sg>0?si:W-si,yF+t,-dB); core.add(tm);
+          const te=new THREE.LineSegments(new THREE.EdgesGeometry(g,30),MJ.edge); te.rotation.copy(tm.rotation); te.scale.copy(tm.scale); te.position.copy(tm.position); core.add(te); }
       });
     }
     // livres à plat, en piles posées contre le dos
     const bt=P.bt/10, land=P.flatOri==='paysage', fx=land?P.bh/10:P.bw/10, fz=land?P.bw/10:P.bh/10;
-    const inW=W-2*t, gap=0.4, nP=Math.max(1,Math.floor((inW+gap)/(fx+gap)+1e-6));
-    const capH=Math.max(1,Math.floor(Math.max(jH-t,bt)/bt+1e-6)), capBig=Math.max(1,Math.floor((H-t)/bt));
+    const inW=W, gap=0.4, nP=Math.max(1,Math.floor((inW+gap)/(fx+gap)+1e-6));
+    const capH=Math.max(1,Math.floor(Math.max(jH,bt)/bt+1e-6)), capBig=Math.max(1,Math.floor((H-yF)/bt));
     const per=P.auto?capH:Math.min(P.qty|0,capBig), cap=P.auto?capH:capBig;
     const clashW=fx>inW+1e-6, clashD=fz>D+1e-6, clash=clashW||clashD;
     const books=new THREE.Group(); books.visible=G.showBooks; books.userData.isBooks=true; core.add(books);
-    const totW=nP*fx+(nP-1)*gap, x0=W/2-totW/2;
+    const totW=nP*fx+(nP-1)*gap, x0=W/2-totW/2, yb0=yF+t+0.02;
     for(let p=0;p<nP;p++){
       const xa=x0+p*(fx+gap), xb=xa+fx, dB=D, dA=D-fz;
       for(let i=0;i<per;i++){
-        const ya=t+i*bt+0.02, yb=t+(i+1)*bt-0.02, ci=i+p*3, fm=K.bookFace(ci,fx,fz);
+        const ya=yb0+i*bt, yb=yb0+(i+1)*bt-0.04, ci=i+p*3, fm=K.bookFace(ci,fx,fz);
         const mats=clash?K.mat.clash:[fm[0],fm[1],fm[4],K.mat.pages,K.mat.pages,K.mat.pages];
         box(books,xa,xb,ya,yb,dA,dB,mats,per*nP<=400?K.mat.bookEdge:null);
       }
-      parts.push({m:fx*fz*bt*per*0.75,y:t+per*bt/2,d:D-fz/2});
+      parts.push({m:fx*fz*bt*per*0.75,y:yF+per*bt/2,d:D-fz/2});
     }
     parts.push({m:W*D*t*MF.rho,y:t/2,d:D/2},{m:W*H*t*MD.rho,y:H/2,d:D+t/2});
     const Htot=H, Dtot=D+t;
@@ -1817,15 +1839,16 @@ MODELS['stoprayon-carte']={
     const al=[];
     if(clashW) al.push(`Livres trop larges : ${fmt(fx)} cm pour ${fmt(inW)} cm entre les joues. Essaie l'autre sens.`);
     if(clashD) al.push(`Livres trop profonds : ${fmt(fz)} cm pour un fond de ${fmt(D)} cm.`);
-    if(!P.auto&&(P.qty|0)*bt>jH-t&&jH>0) al.push(`La pile dépasse la hauteur des joues (${fmt((P.qty|0)*bt)} cm pour ${fmt(jH)} cm).`);
+    if(!P.auto&&(P.qty|0)*bt>jH&&jH>0) al.push(`La pile dépasse la hauteur des joues (${fmt((P.qty|0)*bt)} cm pour ${fmt(jH)} cm).`);
     if(back<12) al.push(`Bascule arrière dès ${Math.round(back)}° : dos trop haut pour le fond, à fixer à l'étagère.`);
-    if(t<0.05&&H>40) al.push('Carte fine pour un dos de cette hauteur : risque de flambage, prévoir un rabat ou un renfort.');
+    if(H>50) al.push('Carte 500 g pour un dos de plus de 50 cm : risque de flambage, prévoir un rabat ou un renfort.');
     return {core,fill:{per,cap,facings:nP,total:per*nP,unit:'pile',units:'Piles'},
       slotSizes:{dos:[W,H],joues:[jD,jH],fond:[W,D],covers:[fx,fz]},
       bounds:{x0:0,x1:W,z0:-Dtot,z1:0,yBase:0,Htot},
       pad:{right:o+sz*5+6,left:o+sz*3+6,front:o+4},
       kv:[['Hors-tout L × P × H',`${fmt(W)} × ${fmt(Dtot)} × ${fmt(Htot)}`,true],['Piles',`${nP}`],['Livres / pile',`${per} <small>max ${cap}</small>`],
         ['Volumes',`${per*nP}`],['Poids chargé',`${fmt(mt/1000)} kg`],['Bascule arr./av.',`${Math.round(back)}° / ${Math.round(fwd)}°`]],
+      measures:[['Découpe à plat',`${fmt(W+2*jD)} × ${fmt(H+D)} cm`],['Pattes',`${fmt(tw)} × ${fmt(tl)} cm, fentes à ${fmt(si)} cm du bord`]],
       alerts:al};
   }
 };
