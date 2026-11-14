@@ -252,6 +252,10 @@ select{width:100%;border:0;border-radius:9px;background:var(--fill);padding:8px 
 .alert::before,.okmsg::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:6px}
 #stage{position:relative;flex:1;min-height:320px;border-radius:18px;overflow:hidden;background:var(--scene);box-shadow:var(--card-sh),inset 0 0 0 .5px color-mix(in srgb,var(--c5) 25%,transparent)}
 #stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.walkzoom{display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);flex-direction:column;gap:6px;z-index:6}
+.walking .walkzoom{display:flex}
+.walkzoom button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line,#d0d4da);background:var(--panel,#fff);color:var(--ink);font:600 22px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.walkzoom button:hover{color:var(--accent)}
 .navpad,.zoompad{position:absolute;right:10px;display:grid;gap:1px;padding:0;background:none;opacity:.55;transition:opacity .15s}
 .navpad:hover,.zoompad:hover,.navpad:focus-within,.zoompad:focus-within{opacity:1}
 .navpad{bottom:10px;grid-template-columns:repeat(3,22px);grid-auto-rows:22px}
@@ -550,6 +554,10 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
       <div class="zoompad" role="group" aria-label="Zoom">
         <button type="button" data-zoom="in" aria-label="Zoomer" title="Zoomer"><svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
         <button type="button" data-zoom="out" aria-label="Dézoomer" title="Dézoomer"><svg viewBox="0 0 16 16"><path d="M3.5 8h9"/></svg></button>
+      </div>
+      <div class="walkzoom" role="group" aria-label="Zoom (marche)">
+        <button type="button" data-wz="in" title="Zoomer">+</button>
+        <button type="button" data-wz="out" title="Dézoomer">−</button>
       </div>
     </div>
     <div class="ov tl toolbar">
@@ -3374,6 +3382,7 @@ function goView(name,instant){
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>goView(b.dataset.view)));
 /* Déplacement (translation écran) et zoom par boutons, avec répétition en maintenant appuyé */
 function navStep(kind,dir){
+  if(typeof WALK!=='undefined'&&WALK.on){if(kind==='zoom') walkZoom(dir); return;}
   const dist=camera.position.distanceTo(controls.target);
   let p0=camera.position.clone(), t0=controls.target.clone(), p1=p0.clone(), t1=t0.clone();
   if(kind==='pan'){
@@ -3855,17 +3864,19 @@ function buildCompare(){
   const tops=[]; let cur=null; /* remplissage des tables */
   built.filter(x=>x.small).forEach(x=>{if(!cur||(cur.w+tgap+x.w>TMAX&&cur.list.length)){cur={list:[],w:0}; tops.push(cur);} cur.w+=(cur.list.length?tgap:0)+x.w; cur.list.push(x);});
   const TM=new THREE.MeshLambertMaterial({color:0xE9E4DA}), LM=new THREE.MeshLambertMaterial({color:0x8B8F94});
-  let x=0, H=0, z0=0, z1=0;
-  const place=(e,X,Y)=>{e.r.core.position.set(X-e.b.x0,Y-e.b.yBase,0); grp.add(e.r.core);
-    const l=label(e.it.name,Math.max(2,Math.min(4,e.h/14))); l.position.set(X+e.w/2,Y+e.h+Math.max(4,e.h/12),(e.b.z0+e.b.z1)/2); grp.add(l);
-    H=Math.max(H,Y+e.h); z0=Math.min(z0,e.b.z0); z1=Math.max(z1,e.b.z1);};
-  tops.forEach(tb=>{const dz0=Math.min(...tb.list.map(e=>e.b.z0)), dz1=Math.max(...tb.list.map(e=>e.b.z1)), TW=Math.max(tb.w+30,90), TD=Math.max(60,dz1-dz0+24), tc=(dz0+dz1)/2;
-    const top=new THREE.Mesh(new THREE.BoxGeometry(TW,3,TD),TM); top.position.set(x+TW/2,TH-1.5,tc); grp.add(top);
-    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,c])=>{const lg=new THREE.Mesh(new THREE.BoxGeometry(4,TH-3,4),LM); lg.position.set(x+TW/2+a*(TW/2-5),(TH-3)/2,tc+c*(TD/2-5)); grp.add(lg);});
-    let xx=x+(TW-tb.w)/2; tb.list.forEach(e=>{place(e,xx,TH); xx+=e.w+tgap;});
-    z0=Math.min(z0,tc-TD/2); z1=Math.max(z1,tc+TD/2); x+=TW+40;});
-  built.filter(e=>!e.small).forEach(e=>{place(e,x,0); x+=e.w+gap;});
-  const W=Math.max(1,x-gap); grp.position.x=-W/2;
+  /* Répartition dans la pièce (sans titres) : tables devant, PLV de sol derrière, en rangées centrées avec des allées */
+  const units=[], cz=e=>(e.b.z0+e.b.z1)/2;
+  tops.forEach(tb=>{const dz0=Math.min(...tb.list.map(e=>e.b.z0)), dz1=Math.max(...tb.list.map(e=>e.b.z1)), TW=Math.max(tb.w+30,90), TD=Math.max(60,dz1-dz0+24), tc=(dz0+dz1)/2, u=new THREE.Group();
+    const top=new THREE.Mesh(new THREE.BoxGeometry(TW,3,TD),TM); top.position.set(TW/2,TH-1.5,0); u.add(top);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,c])=>{const lg=new THREE.Mesh(new THREE.BoxGeometry(4,TH-3,4),LM); lg.position.set(TW/2+a*(TW/2-5),(TH-3)/2,c*(TD/2-5)); u.add(lg);});
+    let xx=(TW-tb.w)/2; tb.list.forEach(e=>{e.r.core.position.set(xx-e.b.x0,TH-e.b.yBase,-tc); u.add(e.r.core); xx+=e.w+tgap;});
+    units.push({g:u,w:TW,d:TD,h:TH+Math.max(...tb.list.map(e=>e.h)),table:true});});
+  built.filter(e=>!e.small).forEach(e=>{const u=new THREE.Group(); e.r.core.position.set(-e.b.x0,-e.b.yBase,-cz(e)); u.add(e.r.core); units.push({g:u,w:e.w,d:e.b.z1-e.b.z0,h:e.h});});
+  const AX=60, AZ=90, area=units.reduce((s,u)=>s+(u.w+AX)*(u.d+AZ),0), rowMax=Math.max(...units.map(u=>u.w),Math.sqrt(area)*1.5);
+  const rows=[]; let row=null; units.forEach(u=>{if(!row||(row.w+AX+u.w>rowMax&&row.list.length)||row.table!==!!u.table){row={list:[],w:0,d:0,table:!!u.table}; rows.push(row);} row.w+=(row.list.length?AX:0)+u.w; row.d=Math.max(row.d,u.d); row.list.push(u);});
+  let zf=0, H=0, W=0;
+  rows.forEach(r=>{const zc=zf-r.d/2; let xx=-r.w/2; r.list.forEach(u=>{u.g.position.set(xx,0,zc); grp.add(u.g); xx+=u.w+AX; H=Math.max(H,u.h);}); W=Math.max(W,r.w); zf-=r.d+AZ;});
+  const z1=0, z0=zf+AZ;
   return {core:grp,bounds:{x0:-W/2,x1:W/2,z0,z1,yBase:0,Htot:H},pad:{right:12,left:12,front:8},cmp:true,
     kv:[['Comparaison',`${CMP.items.length} PLV`,true],['Tables',`${tops.length}`]],measures:[],alerts:[],fill:null};}
 const cmpOv=document.getElementById('cmpOverlay'), cmpList=document.getElementById('cmpList'), cmpExit=document.getElementById('cmpExit');
@@ -3975,6 +3986,10 @@ function walkSet(on){if(on===WALK.on) return; WALK.on=on; walkBtn.setAttribute('
   else{controls.enabled=true; if(WALK.save){camera.position.copy(WALK.save.p); controls.target.copy(WALK.save.t); camera.fov=WALK.save.fov; camera.updateProjectionMatrix();}}
   stage.classList.toggle('walking',on);}
 walkBtn.addEventListener('click',()=>walkSet(!WALK.on));
+function walkZoom(dir){camera.fov=Math.max(12,Math.min(95,camera.fov*(dir==='in'?0.85:1.18))); camera.updateProjectionMatrix();}
+document.querySelectorAll('[data-wz]').forEach(b=>{let rep=null; const stop=()=>{clearInterval(rep); rep=null;};
+  b.addEventListener('pointerdown',e=>{e.preventDefault(); e.stopPropagation(); walkZoom(b.dataset.wz); rep=setInterval(()=>walkZoom(b.dataset.wz),140);});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));});
 function walkStep(dt){const k=WALK.keys, sp=(k.shift?260:120)*dt, f=(k.z||k.w||k.arrowup?1:0)-(k.s||k.arrowdown?1:0), st=(k.d||k.arrowright?1:0)-(k.q||k.a||k.arrowleft?1:0);
   const fx=-Math.sin(WALK.yaw), fz=-Math.cos(WALK.yaw); camera.position.x+=(fx*f-fz*st)*sp; camera.position.z+=(fz*f+fx*st)*sp;
   camera.position.y=FLOORY+160; const d=new THREE.Vector3(Math.cos(WALK.pitch)*fx,Math.sin(WALK.pitch),Math.cos(WALK.pitch)*fz); camera.lookAt(camera.position.clone().add(d));}
