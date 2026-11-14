@@ -1839,11 +1839,26 @@ MODELS['colonne-jade-4']={
     const area=pts=>{let a=0; for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length]; a+=p[0]*q[1]-q[0]*p[1];} return Math.abs(a)/2;};
     // panneau découpé : extrusion (sg -1 = côté gauche, +1 = droit) + visuel collé sur la face extérieure
     /* Microbis couché 1 face : face imprimée lisse et satinée (couché), autre face blanche brute et mate, chant cannelé */
-    const BRUT=new THREE.MeshLambertMaterial({color:0xEBE8E1}), CHANT=new THREE.MeshLambertMaterial({color:0xD9D1C2}), coatC=new Map();
-    const coat=M=>{if(!coatC.has(M)){const c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:0x2c2c2c,shininess:48,map:M.top&&M.top.map||null}));} return coatC.get(M);};
-    // f = indice de la face couchée (2 +y, 3 -y, 4 +z, 5 -z) ; la face opposée est brute, les 4 autres sont des chants
-    const mb=(M,f,img)=>{const opp={2:3,3:2,4:5,5:4}[f], a=[CHANT,CHANT,CHANT,CHANT,CHANT,CHANT]; a[f]=img||coat(M); a[opp]=BRUT; return a;};
-    const dbl=M=>{const a=mb(M,2); a[3]=coat(M); return a;}; // tablette pliée en 2 : couché dessus et dessous
+    // blancs légèrement froids pour compenser l'éclairage chaud de la scène : rendu « blanc blanc »
+    const BRUT=new THREE.MeshLambertMaterial({color:0xE3E5E7}), coatC=new Map();
+    const coat=M=>{if(!coatC.has(M)){let c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; if(c===0xF6F5F1) c=0xEEF1F5;
+      coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:0x262626,shininess:42,map:M.top&&M.top.map||null}));} return coatC.get(M);};
+    // chant : coupe de microbis EE (couché blanc / cannelure E / papier milieu / cannelure E / blanc brut), texture dessinée ici, sans image
+    const chantTex=(()=>{const c=document.createElement('canvas'); c.width=128; c.height=64; const x=c.getContext('2d'), H=64;
+      const band=(y0,h,col)=>{x.fillStyle=col; x.fillRect(0,H-y0-h,128,h);};
+      band(0,64,'#8C6A48'); band(0,6,'#E9EAEB'); band(29,6,'#C79A6B'); band(58,6,'#F6F7F8');
+      const wave=(y0,h)=>{x.strokeStyle='#E2BC8A'; x.lineWidth=5; x.beginPath(); for(let i=0;i<=128;i++){const y=y0+h/2+Math.sin(i/128*Math.PI*4)*(h/2-2); i?x.lineTo(i,H-y):x.moveTo(i,H-y);} x.stroke();};
+      wave(5,24.5); wave(34.5,24.5); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t;})();
+    const PER=0.64; // 2 ondes de cannelure E (~3,2 mm) par motif
+    const chant=(len,thick,rot)=>{const tx=chantTex.clone(); tx.needsUpdate=true; if(rot){tx.center.set(.5,.5); tx.rotation=Math.PI/2;} tx.repeat.set(len/PER,thick/(t)); return new THREE.MeshLambertMaterial({map:tx});};
+    // f = indice de la face couchée (2 +y, 3 -y, 4 +z, 5 -z) ; la face opposée est brute, les 4 autres sont des chants cannelés
+    const mb=(M,f,img,dims)=>{const opp={2:3,3:2,4:5,5:4}[f], a=new Array(6); a[f]=img||coat(M); a[opp]=BRUT;
+      const [dx,dy,dz]=dims||[10,10,10], th=f<4?dy:dz;
+      for(let i=0;i<6;i++) if(!a[i]){ // longueur du chant le long de u ; rot si l'épaisseur tombe sur u (faces ±x d'un panneau mince en z)
+        if(f>=4) a[i]=i<2?chant(dy,th,true):chant(dx,th,false); else a[i]=i<2?chant(dz,th,false):chant(dx,th,false);}
+      return a;};
+    const CHANT=chant(10,2*t,false); CHANT.map.repeat.set(1/PER,1/t);
+    const dbl=(M,dims)=>{const a=mb(M,2,null,dims); a[3]=coat(M); return a;}; // tablette pliée en 2 : couché dessus et dessous
     const cut=(g,sh,depth,xIn,sg,M,im,D,Hh,inner)=>{
       const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false,curveSegments:16});
       const m=new THREE.Mesh(geo,[BRUT,CHANT]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
@@ -1858,10 +1873,10 @@ MODELS['colonne-jade-4']={
     [-1,1].forEach(sg=>{const pts=[[0,0],[sg*Db,Db*tn],[sg*Dt,Ytop],[0,Hs]];
       cut(body,shape(pts),t2,sg*(Wo/2-t2),sg,MS,jim,Db,Ytop,shape([[0,0],[sg*Dc,Dc*tn],[sg*Dc,Hs+Dc*tn],[0,Hs]])); /* doublure intérieure (pli à 180°) : couché côté cases */ addM(area(pts)*t2*MS.rho,Hs/2,-(Db+Dt)/4);});
     // dos des cases, parallèle à la façade
-    K.box(body,-W/2,W/2,Dc*tn,Hs+Dc*tn,-Dc-t,-Dc,mb(MS,4),MS.edge); addM(W*Hs*t*MS.rho,Hs/2,-Dc);
+    K.box(body,-W/2,W/2,Dc*tn,Hs+Dc*tn,-Dc-t,-Dc,mb(MS,4,null,[W,Hs,t]),MS.edge); addM(W*Hs*t*MS.rho,Hs/2,-Dc);
     // socle imprimé
     const plH=Math.min(P.plH,Math.max(0,P.s1)), sim=K.img(V.socle,Wo,plH);
-    if(plH>0.2){K.box(body,-Wo/2,Wo/2,0,plH,0,t,mb(MP,4,sim),MP.edge); addM(Wo*plH*t*MP.rho,plH/2,0);}
+    if(plH>0.2){K.box(body,-Wo/2,Wo/2,0,plH,0,t,mb(MP,4,sim,[Wo,plH,t]),MP.edge); addM(Wo*plH*t*MP.rho,plH/2,0);}
     // tablettes + livres
     const bw=P.bw/10, bh=P.bh/10, bt=P.bt/10, wideD=Math.min(shD,shO+7.5);
     const nF=Math.max(1,Math.floor((W-0.2+0.3)/(bw+0.3)+1e-6)), clashW=bw>W-0.2+1e-6;
@@ -1871,11 +1886,11 @@ MODELS['colonne-jade-4']={
     for(let k=0;k<N;k++){
       const s0=P.s1+k*P.pitch; if(s0+lipH>Hs-1) break;
       const sTop=k<N-1&&P.s1+(k+1)*P.pitch+lipH<=Hs-1?P.s1+(k+1)*P.pitch:Hs, clear=sTop-(s0+t2); clearMin=Math.min(clearMin,clear);
-      K.box(body,-shW/2,shW/2,s0,s0+lipH,shO-lipT,shO,(()=>{const a=mb(MS,4); a[2]=coat(MS); return a;})(),MS.edge);              // nez
-      K.box(body,-shW/2,shW/2,s0,s0+t2,shO-wideD,shO-lipT,dbl(MS),MS.edge);            // partie large (ailes dans les joues)
-      if(shD>wideD) K.box(body,-W/2,W/2,s0,s0+t2,shO-shD,shO-wideD,dbl(MS),MS.edge);   // partie étroite entre les joues
+      K.box(body,-shW/2,shW/2,s0,s0+lipH,shO-lipT,shO,(()=>{const a=mb(MS,4,null,[shW,lipH,lipT]); a[2]=coat(MS); return a;})(),MS.edge);              // nez
+      K.box(body,-shW/2,shW/2,s0,s0+t2,shO-wideD,shO-lipT,dbl(MS,[shW,t2,wideD-lipT]),MS.edge);            // partie large (ailes dans les joues)
+      if(shD>wideD) K.box(body,-W/2,W/2,s0,s0+t2,shO-shD,shO-wideD,dbl(MS,[W,t2,shD-wideD]),MS.edge);   // partie étroite entre les joues
       // patte qui traverse le dos (fente 8 × 80 mm) + goupille en T glissée dans le trou des 2 épaisseurs
-      const zb=shO-shD; K.box(body,-3.4,3.4,s0,s0+t2,zb-tabL,zb,dbl(MS),MS.edge);
+      const zb=shO-shD; K.box(body,-3.4,3.4,s0,s0+t2,zb-tabL,zb,dbl(MS,[6.8,t2,tabL]),MS.edge);
       { const gp=new THREE.Shape(), r=1.5, y1=t2+2.5;
         gp.moveTo(-2,t2-4); gp.lineTo(2,t2-4); gp.lineTo(2,t2); gp.lineTo(4.5,t2); gp.lineTo(4.5,y1-r); gp.quadraticCurveTo(4.5,y1,4.5-r,y1);
         gp.lineTo(-4.5+r,y1); gp.quadraticCurveTo(-4.5,y1,-4.5,y1-r); gp.lineTo(-4.5,t2); gp.lineTo(-2,t2); gp.closePath();
@@ -1894,7 +1909,7 @@ MODELS['colonne-jade-4']={
     const yT=Hs*c, zT=-Hs*sn, hH=P.hH, hD=P.hD; let Htot=yT, zBackH=zT;
     if(hH>0.2){const hg=new THREE.Group(); hg.position.set(0,yT,zT); core.add(hg);
       const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), kz=hD/24.4, kh=hH/30.2;
-      K.box(hg,-Wo/2,Wo/2,0,hH,-t,0,mb(MF,4,fim),MF.edge);
+      K.box(hg,-Wo/2,Wo/2,0,hH,-t,0,mb(MF,4,fim,[Wo,hH,t]),MF.edge);
       [-1,1].forEach(sg=>{const s=new THREE.Shape(), X=v=>sg*v*kz;
         s.moveTo(0,0); s.lineTo(0,hH); s.lineTo(X(9.24),hH); s.quadraticCurveTo(X(12.68),hH,X(14.42),27.23*kh); s.lineTo(X(23.02),12.54*kh);
         s.quadraticCurveTo(X(24.4),10.18*kh,X(24.4),7.48*kh); s.lineTo(X(24.4),0); s.closePath();
