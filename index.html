@@ -579,7 +579,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
       </div>
       <div class="svrow" style="margin-top:8px"><input id="svName" type="hidden"><button class="btn primary" type="submit">Enregistrer comme nouvelle simulation</button></div>
       <p class="note" id="svMsg"></p></form>
-    <div class="svio"><button type="button" class="btn" id="svExport">Exporter la simulation (.json)</button><button type="button" class="btn" id="svExportAll">Tout exporter (.json)</button><label class="btn">Importer un .json<input type="file" accept=".json,application/json" id="svImport" hidden></label><span class="note">« Exporter la simulation » : le modèle affiché. « Tout exporter » : toutes tes sauvegardes, avec leurs visuels, et les réglages de tous les modèles ; à réimporter ici ou dans la version hors ligne.</span></div>
+    <div class="svio"><button type="button" class="btn" id="svExport">Exporter la simulation (.json)</button><button type="button" class="btn" id="svExportAll">Tout exporter (.json)</button><label class="btn">Importer un ou plusieurs .json<input type="file" multiple accept=".json,application/json" id="svImport" hidden></label><span class="note">« Exporter la simulation » : le modèle affiché. « Tout exporter » : toutes tes sauvegardes, avec leurs visuels, et les réglages de tous les modèles ; à réimporter ici ou dans la version hors ligne.</span></div>
     <div class="svlist" id="svList" aria-live="polite"></div>
   </div>
 </div>
@@ -1815,7 +1815,7 @@ MODELS['stoprayon-carte']={
    socle imprimé sous la 1re tablette, fronton 3 faces (face + 2 joues galbées) posé à plat sur le dessus. */
 MODELS['colonne-jade-4']={
   cat:'sol', label:'Colonne 4 cases Générique Jade PLV', desc:'Microbis, corps incliné, 4 tablettes à nez, fronton 3 faces, socle imprimé', floor:true, orient:false,
-  defaults:{N:4,W:17.3,t:4,Hs:125.08,tilt:8,Db:36.41,Dt:24.49,Dc:22.9,s1:22.11,pitch:26.3,shO:6.5,shW:24,plH:21.9,hH:30.2,hD:24.4,hMode:'jade',
+  defaults:{N:4,W:17.3,t:4,Hs:125.08,tilt:8,Db:36.41,Dt:24.49,Dc:22.9,s1:22.11,pitch:26.3,shO:4.5,shW:24,plH:21.9,hH:30.2,hD:24.4,hMode:'jade',
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-blanc',mat_fronton:'mb-blanc',mat_socle:'mb-blanc'},
   parts:[{key:'struct',label:'Corps : joues, dos, tablettes',short:'corps',use:'panel'},{key:'fronton',label:'Fronton',short:'fronton',use:'panel'},{key:'socle',label:'Socle',short:'socle',use:'panel'}],
   slots:[{key:'fronton',label:'Fronton',sub:'face avant',short:'fronton'},{key:'frontonC',label:'Côté gauche du fronton',sub:'vu de face (sert aussi à droite si vide)',short:'côté g. fronton'},{key:'frontonCD',label:'Côté droit du fronton',sub:'vu de face, facultatif',short:'côté d. fronton'},
@@ -1995,7 +1995,7 @@ MODELS['colonne-jade-4']={
 /* ---------- Colonne 4 cases générique XAVIER DUMONT (XD) — base kraft : cotes des tracés XD 2763 (col A), 2177 (étagères), 2754 (fronton) ---------- */
 MODELS['colonne-xd-4']=Object.assign({},MODELS['colonne-jade-4'],{
   label:'Colonne 4 cases Générique XAVIER DUMONT – Base kraft', desc:'Microbis kraft brut, corps incliné, 4 tablettes, rivets, fronton boîte 3 faces',
-  defaults:{N:4,W:17.7,t:4,Hs:125.15,tilt:8.3,Db:35.84,Dt:23.98,Dc:23.0,s1:20.81,pitch:26.27,shO:6.5,shW:25.7,plH:0,hH:38.0,hD:23.0,hW:20.56,hMode:'rect',lock:'languette',
+  defaults:{N:4,W:17.7,t:4,Hs:125.15,tilt:8.3,Db:35.84,Dt:23.98,Dc:23.0,s1:20.81,pitch:26.27,shO:4.5,shW:25.7,plH:0,hH:38.0,hD:23.0,hW:20.56,hMode:'rect',lock:'languette',
     rivets:[[20.5,112.9],[29.1,49.8],[32.9,9.9]],
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-kraft-brut',mat_fronton:'mb-blanc-mat',mat_socle:'mb-kraft-brut'}
 });
@@ -3594,8 +3594,24 @@ document.getElementById('svExport').addEventListener('click',async()=>{
   if(downloads){try{await downloads.save({filename:fn,data}); svMsg.textContent='Simulation exportée.';}catch(e){svMsg.textContent=e&&e.code==='declined'?'Export annulé.':'Export impossible ici.';}}
   else {const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([data],{type:'application/json'})); a.download=fn; a.click(); svMsg.textContent='Simulation exportée.';}
 });
+/* Import multiple : chaque simulation devient directement une sauvegarde de « Mes simulations » */
+async function importMany(files){let n=0,bad=0; const now=new Date().toISOString();
+  for(const f of files){svMsg.textContent=`Import… ${n+bad+1} / ${files.length}`;
+    try{const d=JSON.parse(await f.text()); if(d&&d.format==='plvconf-bundle'){await importBundle(d); n++; continue;}
+      regMats(d); if(!d||d.format!=='plvconf-simulation'||!MODELS[d.type]) throw 0;
+      const V={covers:[]}, imgs={};
+      (d.covers||[]).forEach(c=>{if(c&&c.url){imgs[c.id]=c.url; V.covers.push(Object.assign({},c,{url:undefined}));}});
+      V.decals=(d.decals||[]).filter(c=>c&&c.url).map(c=>{imgs[c.id]=c.url; return Object.assign({},c,{url:undefined});});
+      Object.entries(d.slots||{}).forEach(([k,v])=>{if(v&&v.url){imgs[v.id]=v.url; V[k]=Object.assign({},v,{url:undefined});}});
+      Object.entries(d.V||{}).forEach(([k,v])=>{if(!(k in V)&&(typeof v!=='object'||v===null)) V[k]=v;});
+      const info=d.info||{}, name=d.name||simName(info)||f.name.replace(/\.json$/i,'');
+      await svPut({name,info,type:d.type,materiaux:d.materiaux||{},P:Object.assign({},MODELS[d.type].defaults,d.P||{}),G:Object.assign({},G,d.G||{}),V,thumb:null,created:now,updated:now},imgs); n++;}
+    catch(err){bad++;}}
+  svRender(); refreshSimSel(); try{renderSimSide();}catch(e){}
+  svMsg.textContent=`${n} simulation${n>1?'s':''} importée${n>1?'s':''} dans « Mes simulations »${bad?` · ${bad} fichier${bad>1?'s':''} non reconnu${bad>1?'s':''}`:''}.`;}
 document.getElementById('svImport').addEventListener('change',async e=>{
-  const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
+  const fs=[...(e.target.files||[])]; e.target.value=''; if(fs.length>1){await importMany(fs); return;}
+  const f=fs[0]; if(!f) return;
   try{const d=JSON.parse(await f.text()); if(d&&d.format==='plvconf-bundle'){await importBundle(d); return;} regMats(d); if(!d||d.format!=='plvconf-simulation'||!MODELS[d.type]) throw 0;
     ST.type=d.type; ST.sub=ST.sub||{}; ST.sub[MODELS[d.type].cat]=d.type; ST.P[d.type]=Object.assign({},MODELS[d.type].defaults,d.P||{}); Object.assign(G,d.G||{});
     curSave=null; newDraft(d.type);
