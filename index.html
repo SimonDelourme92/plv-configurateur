@@ -2952,6 +2952,14 @@ function line(g,a,b){g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoin
 function roundRect(u0,u1,v0,v1,r){const s=new THREE.Shape(); s.moveTo(u0+r,v0); s.lineTo(u1-r,v0); s.quadraticCurveTo(u1,v0,u1,v0+r); s.lineTo(u1,v1-r); s.quadraticCurveTo(u1,v1,u1-r,v1); s.lineTo(u0+r,v1); s.quadraticCurveTo(u0,v1,u0,v1-r); s.lineTo(u0,v0+r); s.quadraticCurveTo(u0,v0,u0+r,v0); return s;}
 function capsule(len,w){const r=w/2,s=new THREE.Shape(); s.moveTo(-r,0); s.lineTo(-r,len); s.absarc(0,len,r,Math.PI,0,true); s.lineTo(r,0); s.absarc(0,0,r,0,Math.PI,true); return s;}
 
+/* Tranches de livre : fines lignes de feuilles, légère irrégularité, ombre près des couvertures (texture dessinée, sans image) */
+const PAGES=(()=>{const c=document.createElement('canvas'); c.width=256; c.height=64; const x=c.getContext('2d');
+  for(let i=0;i<256;i++){const e=Math.min(i,255-i)/256; let r=240,g=231,b=212;
+    if(e<0.02){r=g=b=40;} else { const sh=e<0.1?0.62+e*3.8:1, n=0.85+Math.random()*0.15, l=(i%6<2)?0.55:(i%6<3?0.8:1), k=sh*n*l; r*=k; g*=k; b*=k; }
+    x.fillStyle=`rgb(${r|0},${g|0},${b|0})`; x.fillRect(i,0,1,64);}
+  for(let j=0;j<500;j++){x.fillStyle=`rgba(90,75,55,${0.1+Math.random()*0.3})`; x.fillRect(Math.random()*256,Math.random()*64,1,3+Math.random()*16);}
+  const mk=rot=>{const t=new THREE.CanvasTexture(c); t.anisotropy=8; if(rot){t.center.set(.5,.5); t.rotation=Math.PI/2;} return new THREE.MeshLambertMaterial({map:t});};
+  return {u:mk(false),v:mk(true)};})();
 let spinAngle=0;
 const K={
   mat:MAT, roundRect, spinAngle:()=>spinAngle, woodExtrude:(g,t,M,k)=>woodExtrude(g,t,M,k),
@@ -2962,8 +2970,8 @@ const K={
     const ci=((i%8)+8)%8, V=curV(), n=V.covers.length;
     const cv=n?V.covers[((i%n)+n)%n]:null, front=cv?(imgMat(cv,bw,bh)||coverMats[ci]):coverMats[ci];
     if(cv&&(cv.spine||cv.spineUrl)){K._sp=K._sp||{}; const sp=K._sp[cv.spine||'#222']||(K._sp[cv.spine||'#222']=new THREE.MeshLambertMaterial({color:cv.spine||'#222'}));
-      const dos=cv.spineUrl?(imgMat({id:cv.id+'_dos',url:cv.spineUrl,fit:'cover'},cv.spineW||bh*0.12,bh)||sp):sp; return [MAT.pages,dos,MAT.pages,MAT.pages,front,sp];} // dos imprimé (image) ou couleur unie // couleur de dos / 4e fixée par la couverture
-    return [MAT.pages,spineMats[ci],MAT.pages,MAT.pages,front,coverMats[ci]];
+      const dos=cv.spineUrl?(imgMat({id:cv.id+'_dos',url:cv.spineUrl,fit:'cover'},cv.spineW||bh*0.12,bh)||sp):sp; return [PAGES.u,dos,PAGES.v,PAGES.v,front,sp];} // dos imprimé (image) ou couleur unie // couleur de dos / 4e fixée par la couverture
+    return [PAGES.u,spineMats[ci],PAGES.v,PAGES.v,front,coverMats[ci]];
   },
   bookSpine:ci=>[coverMats[ci],coverMats[ci],MAT.pages,MAT.pages,spineMats[ci],MAT.pages],
   box(g,x0,x1,y0,y1,z0,z1,mat,edges,mass){
