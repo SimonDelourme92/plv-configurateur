@@ -1900,13 +1900,17 @@ MODELS['colonne-jade-4']={
       K.box(body,-shW/2,shW/2,s0,s0+t2,shO-wideD,shO-lipT,dbl(MS,[shW,t2,wideD-lipT]),MS.edge);            // partie large (ailes dans les joues)
       if(shD>wideD) K.box(body,-W/2,W/2,s0,s0+t2,shO-shD,shO-wideD,dbl(MS,[W,t2,shD-wideD]),MS.edge);   // partie étroite entre les joues
       // patte qui traverse le dos (fente 8 × 80 mm) + goupille en T glissée dans le trou des 2 épaisseurs
-      const zb=shO-shD; K.box(body,-3.4,3.4,s0,s0+t2,zb-tabL,zb,dbl(MS,[6.8,t2,tabL]),MS.edge);
+      const zb=shO-shD;
+      if(P.lock==='languette'){ /* XD : languette 70 × 38 mm passée dans la fente en U du dos, 2 oreilles 25 × 28 mm rabattues contre le dos */
+        K.box(body,-3.5,3.5,s0,s0+t,zb-3.8,zb,mb(MS,2,null,[7,t,3.8]),MS.edge);
+        [-1,1].forEach(sg=>K.box(body,sg<0?-6:3.5,sg<0?-3.5:6,s0,s0+2.8,zb-t,zb,mb(MS,5,null,[2.5,2.8,t]),MS.edge));
+      } else { K.box(body,-3.4,3.4,s0,s0+t2,zb-tabL,zb,dbl(MS,[6.8,t2,tabL]),MS.edge);
       { const gp=new THREE.Shape(), r=1.5, y1=t2+2.5;
         gp.moveTo(-2,t2-4); gp.lineTo(2,t2-4); gp.lineTo(2,t2); gp.lineTo(4.5,t2); gp.lineTo(4.5,y1-r); gp.quadraticCurveTo(4.5,y1,4.5-r,y1);
         gp.lineTo(-4.5+r,y1); gp.quadraticCurveTo(-4.5,y1,-4.5,y1-r); gp.lineTo(-4.5,t2); gp.lineTo(-2,t2); gp.closePath();
         const gg=new THREE.ExtrudeGeometry(gp,{depth:t,bevelEnabled:false,curveSegments:6}), gm=new THREE.Mesh(gg,[BRUT,CHANT]);
         gm.position.set(0,s0,zb-0.1-t); body.add(gm);
-        const ge=new THREE.LineSegments(new THREE.EdgesGeometry(gg,30),MS.edge); ge.position.copy(gm.position); body.add(ge); }
+        const ge=new THREE.LineSegments(new THREE.EdgesGeometry(gg,30),MS.edge); ge.position.copy(gm.position); body.add(ge); } }
       addM((shW*wideD+W*(shD-wideD)+6.8*tabL)*t2*MS.rho+60*t*MS.rho,s0,shO-shD/2);
       const clash=clashW||bh>clear+1e-6, totW=nF*bw+(nF-1)*0.3, ya=s0+t2;
       for(let f=0;f<nF;f++){const x0=-totW/2+f*(bw+0.3);
@@ -1978,7 +1982,7 @@ MODELS['colonne-jade-4']={
 /* ---------- Colonne 4 cases générique XAVIER DUMONT (XD) — base kraft : cotes des tracés XD 2763 (col A), 2177 (étagères), 2754 (fronton) ---------- */
 MODELS['colonne-xd-4']=Object.assign({},MODELS['colonne-jade-4'],{
   label:'Colonne 4 cases Générique XAVIER DUMONT – Base kraft', desc:'Microbis kraft brut, corps incliné, 4 tablettes, rivets, fronton boîte 3 faces',
-  defaults:{N:4,W:17.7,t:4,Hs:125.15,tilt:8.3,Db:35.84,Dt:23.98,Dc:23.0,s1:20.81,pitch:26.27,shO:6.5,shW:25.7,plH:0,hH:38.0,hD:23.0,hW:20.56,hMode:'rect',
+  defaults:{N:4,W:17.7,t:4,Hs:125.15,tilt:8.3,Db:35.84,Dt:23.98,Dc:23.0,s1:20.81,pitch:26.27,shO:6.5,shW:25.7,plH:0,hH:38.0,hD:23.0,hW:20.56,hMode:'rect',lock:'languette',
     rivets:[[20.5,112.9],[29.1,49.8],[32.9,9.9]],
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-kraft-brut',mat_fronton:'mb-blanc-mat',mat_socle:'mb-kraft-brut'}
 });
