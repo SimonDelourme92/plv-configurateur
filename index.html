@@ -2048,9 +2048,9 @@ MODELS['porteflyer-30']={
     K.box(core,-Wb/2,Wb/2,0,Hf,zF-fT,zF,K.faces(ext(MB),{3:brut,4:fim||ext(MB)}),MB.edge);
     const jim=K.img(V.joues,zF,Hj);
     [-1,1].forEach(sg=>{const js=new THREE.Shape(); /* joue Vasseur : monte en biais vers l'arrière, s'enclipse dans le dos, oreille arrondie qui dépasse derrière */
-      const JP=[[0,0],[0,6.06],[7.24,8.71],[7.36,10.23],[7.36,14.99]], ks=zF/7.5; js.moveTo(zF,0); JP.slice(1).forEach(([u,v])=>js.lineTo(zF-u*ks,v));
+      const JP=[[0,0],[0,Hf],[7.24,8.71],[7.36,10.23],[7.36,14.99]], ks=zF/7.5; js.moveTo(zF,0); JP.slice(1).forEach(([u,v])=>js.lineTo(zF-u*ks,v));
       js.quadraticCurveTo(zF-8.1*ks,16.2,zF-8.6*ks,15.9); js.quadraticCurveTo(zF-9.2*ks,15.6,zF-9.52*ks,14.95); js.lineTo(zF-13.61*ks,0); js.closePath();
-      const jg=new THREE.ExtrudeGeometry(js,{depth:t,bevelEnabled:false}); const jm=new THREE.Mesh(jg,[ext(MB),chW]); K.box(core,sg<0?-Wb/2-0.06:Wb/2-t-0.06,sg<0?-Wb/2+t+0.06:Wb/2+0.06,0,6.06*Hf/7.18,zF-0.03,zF+0.04,ext(MB),null); /* avant de la joue = pli */ jm.rotation.y=-Math.PI/2; jm.position.x=sg<0?-Wb/2+t:Wb/2; core.add(jm);
+      const jg=new THREE.ExtrudeGeometry(js,{depth:t,bevelEnabled:false}); const jm=new THREE.Mesh(jg,[ext(MB),chW]); K.box(core,sg<0?-Wb/2-0.06:Wb/2-t-0.06,sg<0?-Wb/2+t+0.06:Wb/2+0.06,0,Hf,zF-0.03,zF+0.04,ext(MB),null); /* avant de la joue = pli */ jm.rotation.y=-Math.PI/2; jm.position.x=sg<0?-Wb/2+t:Wb/2; core.add(jm);
       if(jim){const pg=new THREE.ShapeGeometry(js), pos=pg.attributes.position, uv=pg.attributes.uv; for(let i=0;i<pos.count;i++) uv.setXY(i,sg<0?(pos.getX(i)+6.2)/(zF+6.2):1-(pos.getX(i)+6.2)/(zF+6.2),pos.getY(i)/16.2); uv.needsUpdate=true;
         const m=new THREE.Mesh(pg,jim); m.rotation.y=-Math.PI/2; m.position.x=sg<0?-Wb/2-0.05:Wb/2+0.05; m.scale.z=sg<0?1:-1; core.add(m);}});
     // livres / flyers : debout, couverture face client, appuyés contre le dos
