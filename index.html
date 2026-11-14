@@ -1747,10 +1747,10 @@ MODELS['tourniquet-metal']={
 /* ---------- Stop pile pliant – carte 500 g (1 découpe : dos + 2 joues galbées + fond, pattes des joues passées sous le fond et ressorties par 2 fentes) ---------- */
 MODELS['stoprayon-carte']={
   cat:'stoprayon', label:'Stop pile pliant – carte 500 g', desc:'Une seule découpe : dos, joues galbées, fond ; pattes des joues glissées sous le fond et ressorties par 2 fentes', flat:true,
-  defaults:{W:15.2,D:22,H:41,t:0.65,jH:18,jD:13.8,jShape:'arrondie',flatOri:'portrait',tabW:3.5,tabL:5,slotIn:1,pel:'aucun',verso:'blanc',dosCut:false,
+  defaults:{W:15.2,D:22,H:41,t:0.65,jH:18,jD:13.8,jShape:'arrondie',flatOri:'portrait',tabW:3.5,tabL:5,slotIn:1,pel:'aucun',verso:'couche',dosCut:false,
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:5,mat_dos:'carte-500',mat_fond:'carte-500',mat_joues:'carte-500'},
   parts:[{key:'dos',label:'Dos',short:'dos',use:'panel'},{key:'fond',label:'Fond',short:'fond',use:'panel'},{key:'joues',label:'Joues',short:'joues',use:'panel'}],
-  slots:[{key:'dos',label:'Dos',sub:'face avant',short:'dos'},{key:'dosV',label:'Dos – verso',sub:'si imprimé recto-verso',short:'dos verso'},{key:'joues',label:'Joues',sub:'intérieur (et extérieur si pas de verso)',short:'joues'},{key:'jouesV',label:'Joues – extérieur',sub:'si imprimé recto-verso',short:'joues ext.'},{key:'fond',label:'Fond',sub:'dessus',short:'fond'}],
+  slots:[{key:'dos',label:'Dos',sub:'face avant',short:'dos'},{key:'dosV',label:'Dos – verso',sub:'si imprimé recto-verso',short:'dos verso'},{key:'joues',label:'Joues',sub:'intérieur (et extérieur si pas de verso)',short:'joues'},{key:'jouesV',label:'Joues – extérieur',sub:'si imprimé recto-verso',short:'joues ext.'},{key:'fond',label:'Fond',sub:'dessus',short:'fond'},{key:'fondV',label:'Fond – dessous',sub:'si imprimé recto-verso',short:'fond dessous'}],
   structure(ui){
     ui.group('Dos et fond',[F_('W','Largeur',8,80,0.1,'cm'),F_('H','Hauteur du dos',8,150,0.5,'cm'),F_('D','Profondeur du fond',4,50,0.1,'cm'),
       F_('t','Épaisseur de la carte',0.3,3,0.05,'mm','Carte 500 g/m² ≈ 0,65 mm.')]);
@@ -1758,10 +1758,10 @@ MODELS['stoprayon-carte']={
     ui.choice(j,'jShape',[['arrondie','Galbée'],['droite','Droite']]);
     [F_('jH','Hauteur des joues',0,100,0.5,'cm','Au niveau du dos.'),F_('jD','Profondeur des joues',0,50,0.1,'cm','Depuis le dos vers l\'avant.'),
      F_('tabW','Largeur des pattes',1,8,0.1,'cm','Au bout avant de chaque joue.'),F_('tabL','Longueur des pattes',2,10,0.1,'cm'),F_('slotIn','Fentes : retrait du bord',0.3,4,0.1,'cm')].forEach(f=>j.appendChild(numField(f,curP)));
-    const pg=ui.group('Finition',[]); ui.choice(pg,'pel',[['aucun','Sans pelliculage'],['mat','Pellic. mat'],['brillant','Pellic. brillant']]); ui.choice(pg,'verso',[['blanc','Verso blanc'],['kraft','Verso brun (kraft)']]); ui.choice(pg,'dosCut',[[false,'Dos rectangulaire'],[true,'Dos découpé (PNG détouré)']]);
+    const pg=ui.group('Finition',[]); ui.choice(pg,'pel',[['aucun','Sans pelliculage'],['mat','Pellic. mat'],['brillant','Pellic. brillant']]); ui.choice(pg,'verso',[['couche','Couché recto-verso'],['blanc','Verso non couché'],['kraft','Verso kraft']]); ui.choice(pg,'dosCut',[[false,'Dos rectangulaire'],[true,'Dos découpé (PNG détouré)']]);
   },
   specs:P=>[['Principe','stop pile pliant : une seule découpe en carte 500 g, montée sans colle'],['Largeur',fmt(P.W)+' cm'],['Hauteur du dos',fmt(P.H)+' cm'],['Profondeur du fond',fmt(P.D)+' cm'],['Carte',`500 g, ${fmt(P.t)} mm`],
-    ['Pelliculage',{mat:'mat',brillant:'brillant'}[P.pel]||'sans'],['Verso',P.verso==='kraft'?'brun (kraft)':'blanc'],
+    ['Pelliculage',{mat:'mat',brillant:'brillant'}[P.pel]||'sans'],['Verso',P.verso==='kraft'?'brun (kraft)':P.verso==='blanc'?'blanc non couché':'couché, imprimé (visuels verso)'],
     ['Joues',`${P.jShape==='droite'?'droites':'galbées'}, ${fmt(P.jH)} × ${fmt(P.jD)} cm, pattes ${fmt(P.tabW)} × ${fmt(P.tabL)} cm`],['Livres',bookLabel(P)+', à plat']],
   build(P,G,K,V){
     const MD=K.part(P,'dos'), MF=K.part(P,'fond'), MJ=K.part(P,'joues');
@@ -1776,10 +1776,10 @@ MODELS['stoprayon-carte']={
     const PEL={aucun:{specular:0x202020,shininess:16},mat:{specular:0x000000,shininess:1},brillant:{specular:0x2c2c2c,shininess:140,envMap:ENV,reflectivity:0.14,combine:THREE.MixOperation}}[P.pel]||{specular:0x202020,shininess:16};
     const pc=new Map(), pel=m=>{if(!m) return m; if(!pc.has(m)){const c=new THREE.MeshPhongMaterial(Object.assign({map:m.map||null,color:m.map?(P.pel==='mat'?0xE9E9E9:0xFFFFFF):(m.color?m.color.getHex():0xF8F7F3),
       emissive:P.pel==='mat'?0x161616:0x000000,transparent:!!m.transparent,alphaTest:m.alphaTest||0},PEL)); pc.set(m,c);} return pc.get(m);}; /* mat : voile laiteux (contraste un peu adouci) */
-    const KV=P.verso==='kraft', vb=(w,h,sd)=>{const m=mbBrut(w,h,sd); if(!KV) return m; const k='k'+(w||0)+'x'+(h||0)+(sd||''); return mbBrutCache[k]||(mbBrutCache[k]=Object.assign(m.clone(),{color:new THREE.Color(0xB08A62)}));}, verso=vb(), y0=t, yF=2*t; /* fond posé sur les pattes (y 0 → t) */
+    const KV=P.verso==='kraft', KC=!P.verso||P.verso==='couche', vb=(w,h,sd)=>{if(KC){const k='c'+(sd||''); K._vc=K._vc||{}; return K._vc[k+P.pel]||(K._vc[k+P.pel]=Object.assign(pel(MF.top).clone(),sd?{side:sd}:{}));}const m=mbBrut(w,h,sd); if(!KV) return m; const k='k'+(w||0)+'x'+(h||0)+(sd||''); return mbBrutCache[k]||(mbBrutCache[k]=Object.assign(m.clone(),{color:new THREE.Color(0xB08A62)}));}, verso=vb(), y0=t, yF=2*t; /* fond posé sur les pattes (y 0 → t) */
     // fond : dessus imprimé (recto), dessous verso
     const fi=K.img(V.fond,W,D), di=K.img(V.dos,W,H);
-    box(core,0,W,y0,yF,0,D,K.faces(MF.side,{2:pel(fi||MF.top),3:verso}),MF.edge,MF.rho);
+    box(core,0,W,y0,yF,0,D,K.faces(MF.side,{2:pel(fi||MF.top),3:pel(K.img(V.fondV,W,D))||verso}),MF.edge,MF.rho);
     // dos : recto vers l'avant, plié en bas sur le fond (pli arrondi)
     const dct=P.dosCut&&V.dos?K.tex(Object.assign({},V.dos,{alpha:true}),W+2*t,H-y0):null;
     if(dct){ /* dos découpé suivant le visuel (PNG détouré) : recto pelliculé + verso masqué par la même silhouette */
@@ -1787,9 +1787,10 @@ MODELS['stoprayon-carte']={
       const im=dct.image, cv=document.createElement('canvas'); cv.width=im.width; cv.height=im.height; const x=cv.getContext('2d'); x.drawImage(im,0,0); x.globalCompositeOperation='source-in';
       const pc=document.createElement('canvas'); pc.width=pc.height=Math.max(8,Math.round(30*cv.height/(H-y0))); pc.getContext('2d').drawImage(MB_BRUT_C,0,0,pc.width,pc.height);
       x.fillStyle=x.createPattern(pc,'repeat'); x.fillRect(0,0,cv.width,cv.height); if(P.verso==='kraft'){x.globalCompositeOperation='multiply'; x.fillStyle='#B08A62'; x.fillRect(0,0,cv.width,cv.height); x.globalCompositeOperation='destination-in'; x.drawImage(im,0,0);}
+      if(KC&&!V.dosV){x.globalCompositeOperation='source-in'; x.fillStyle='#'+(MD.top.color?MD.top.color.getHexString():'f8f7f3'); x.fillRect(0,0,cv.width,cv.height);}
       const vt=V.dosV?K.tex(V.dosV,W+2*t,H-y0):null; /* verso imprimé : visuel tel que vu de derrière, recadré par la silhouette du recto */
       if(vt){x.globalCompositeOperation='source-over'; x.clearRect(0,0,cv.width,cv.height); x.save(); x.translate(cv.width,0); x.scale(-1,1); x.drawImage(vt.image,0,0,cv.width,cv.height); x.restore(); x.globalCompositeOperation='destination-in'; x.drawImage(im,0,0);}
-      const bm=vt?Object.assign(pel({map:new THREE.CanvasTexture(cv)}).clone(),{alphaTest:0.5,side:THREE.BackSide}):new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide}), g=new THREE.PlaneGeometry(W+2*t,H-y0);
+      const bm=(vt||KC)?Object.assign(pel({map:new THREE.CanvasTexture(cv)}).clone(),{alphaTest:0.5,side:THREE.BackSide}):new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide}), g=new THREE.PlaneGeometry(W+2*t,H-y0);
       [[fm,-D],[bm,-D-t]].forEach(([m,z])=>{const q=new THREE.Mesh(g,m); q.position.set(W/2,y0+(H-y0)/2,z); core.add(q);});
       parts.push({m:W*H*t*MD.rho*0.6,y:H/2,d:D+t/2});
     } else box(core,-t,W+t,y0,H,D,D+t,K.faces(MD.side,{4:pel(di||MD.top),5:pel(K.img(V.dosV,W+2*t,H-y0))||verso}),MD.edge,MD.rho);
@@ -1813,11 +1814,11 @@ MODELS['stoprayon-carte']={
         parts.push({m:area*t*MJ.rho,y:jH/3,d:D-jD/3});
         // patte : descend le long du chant du fond, passe dessous, remonte dans la fente, ressort à plat sur le fond (vers l'intérieur)
         const dA=D-jD, dB=D-jD+tw, xo=sg>0?x:x+t, xi=sg>0?si:W-si, Lx=(a,b)=>sg>0?[a,b]:[W-b,W-a];
-        box(core,x,x+t,0,yF,dA,dB,K.faces(verso,{[sg>0?1:0]:face}),MJ.edge);                                   // descente
+        box(core,x,x+t,0,yF,dA,dB,K.faces(KC?out:verso,{[sg>0?1:0]:face}),MJ.edge);                                   // descente
         {const [a,b]=Lx(-t,si+t); box(core,a,b,0,y0,dA,dB,K.faces(verso,{2:face}),MJ.edge);}                       // sous le fond
         {const [a,b]=sg>0?[si,si+t]:[W-si-t,W-si]; box(core,a,b,0,yF+t,dA,dB,verso,MJ.edge);}      // dans la fente
         { const s=new THREE.Shape(), L=tabTop; s.moveTo(0,0); s.lineTo(L-rr,0); s.quadraticCurveTo(L,0,L,rr); s.lineTo(L,tw-rr); s.quadraticCurveTo(L,tw,L-rr,tw); s.lineTo(0,tw); s.closePath(); /* bout arrondi */
-          const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:8}), tm=new THREE.Mesh(g,[vb(30,30,THREE.DoubleSide),Object.assign(MJ.side.clone(),{side:THREE.DoubleSide})]); /* face visible = verso de la patte */
+          const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:8}), tm=new THREE.Mesh(g,[KC?Object.assign(out.clone(),{side:THREE.DoubleSide}):vb(30,30,THREE.DoubleSide),Object.assign(MJ.side.clone(),{side:THREE.DoubleSide})]); /* face visible = verso de la patte */
           tm.rotation.x=Math.PI/2; tm.scale.x=sg; tm.position.set(sg>0?si:W-si,yF+t,-dB); core.add(tm);
           const te=new THREE.LineSegments(new THREE.EdgesGeometry(g,30),MJ.edge); te.rotation.copy(tm.rotation); te.scale.copy(tm.scale); te.position.copy(tm.position); core.add(te); }
       });
