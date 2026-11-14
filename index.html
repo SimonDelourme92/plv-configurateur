@@ -1870,8 +1870,8 @@ MODELS['colonne-jade-4']={
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),M.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); g.add(e);
       {const pg=new THREE.ShapeGeometry(sh,16), pos=pg.attributes.position, uv=pg.attributes.uv;
         for(let i=0;i<pos.count;i++){const x=pos.getX(i); uv.setXY(i,sg<0?(x+D)/D:x/D,pos.getY(i)/Hh);} uv.needsUpdate=true;
-        const pm=new THREE.Mesh(pg,im||coat(M)); pm.rotation.y=sg*Math.PI/2; pm.position.x=xIn+sg*(depth+0.02); g.add(pm);
-        if(inner){const ci=coat(M).clone(); ci.side=THREE.BackSide; const pi=new THREE.Mesh(new THREE.ShapeGeometry(inner),ci); pi.rotation.y=pm.rotation.y; pi.position.x=xIn-sg*0.02; g.add(pi);}}
+        const pm=new THREE.Mesh(pg,im||coat(M)); pm.rotation.y=sg*Math.PI/2; pm.position.x=xIn+sg*(depth+0.05); g.add(pm);
+        if(inner){const ci=coat(M).clone(); ci.side=THREE.BackSide; const pi=new THREE.Mesh(new THREE.ShapeGeometry(inner),ci); pi.rotation.y=pm.rotation.y; pi.position.x=xIn-sg*0.05; g.add(pi);}}
     };
     // joues : arête avant (pli) = axe s, bas et haut horizontaux une fois le corps incliné
     const Ytop=Hs+Dt*tn, jim=K.img(V.joues,Db,Ytop), jimD=V.jouesD?K.img(V.jouesD,Db,Ytop):jim;
@@ -2463,7 +2463,7 @@ panel.addEventListener('scroll',()=>{if(pc) closePicker();});
 
 /* =================== Scène =================== */
 const stage=document.getElementById('stage');
-const renderer=new THREE.WebGLRenderer({antialias:true});
+const renderer=new THREE.WebGLRenderer({antialias:true,logarithmicDepthBuffer:true}); /* profondeur précise : plus de scintillement des visuels plaqués de biais */
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 stage.appendChild(renderer.domElement);
 const scene=new THREE.Scene();
@@ -3181,7 +3181,7 @@ function renderShot(dir,w,h,ortho,vcode){
 }
 function renderStudioShot(dir,w,h,ortho,vcode){
   if(root) root.traverse(o=>{const v=o.userData.views; if(v!==undefined) o.visible=vcode?v.includes(vcode):v[0]!=='!';});
-  if(!capR){capR=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); capR.setPixelRatio(1);}
+  if(!capR){capR=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,logarithmicDepthBuffer:true}); capR.setPixelRatio(1);}
   capR.setSize(w,h,false); capR.setClearColor(0xffffff,1);
   if(ortho){
     const bb=new THREE.Box3().setFromObject(root), c=new THREE.Vector3(); bb.getCenter(c);
