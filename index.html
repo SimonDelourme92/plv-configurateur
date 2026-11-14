@@ -1781,17 +1781,18 @@ MODELS['stoprayon-carte']={
     const fi=K.img(V.fond,W,D), di=K.img(V.dos,W,H);
     box(core,0,W,y0,yF,0,D,K.faces(MF.side,{2:pel(fi||MF.top),3:pel(K.img(V.fondV,W,D))||verso}),MF.edge,MF.rho);
     // dos : recto vers l'avant, plié en bas sur le fond (pli arrondi)
-    const dct=P.dosCut&&V.dos?K.tex(Object.assign({},V.dos,{alpha:true}),W+2*t,H-y0):null;
+    const dL=+P.dosL||0, dR=+P.dosR||0, dW=W+2*t+dL+dR, dX=W/2+(dR-dL)/2; /* dos découpé plus large que le dos (ex. ailes du dragon) */
+    const dct=P.dosCut&&V.dos?K.tex(Object.assign({},V.dos,{alpha:true}),dW,H-y0):null;
     if(dct){ /* dos découpé suivant le visuel (PNG détouré) : recto pelliculé + verso masqué par la même silhouette */
       const fm=pel({map:dct}).clone(); fm.alphaTest=0.5; fm.transparent=false; fm.side=THREE.FrontSide;
       const im=dct.image, cv=document.createElement('canvas'); cv.width=im.width; cv.height=im.height; const x=cv.getContext('2d'); x.drawImage(im,0,0); x.globalCompositeOperation='source-in';
       const pc=document.createElement('canvas'); pc.width=pc.height=Math.max(8,Math.round(30*cv.height/(H-y0))); pc.getContext('2d').drawImage(MB_BRUT_C,0,0,pc.width,pc.height);
       x.fillStyle=x.createPattern(pc,'repeat'); x.fillRect(0,0,cv.width,cv.height); if(P.verso==='kraft'){x.globalCompositeOperation='multiply'; x.fillStyle='#B08A62'; x.fillRect(0,0,cv.width,cv.height); x.globalCompositeOperation='destination-in'; x.drawImage(im,0,0);}
       if(KC&&!V.dosV){x.globalCompositeOperation='source-in'; x.fillStyle='#'+(MD.top.color?MD.top.color.getHexString():'f8f7f3'); x.fillRect(0,0,cv.width,cv.height);}
-      const vt=V.dosV?K.tex(V.dosV,W+2*t,H-y0):null; /* verso imprimé : visuel tel que vu de derrière, recadré par la silhouette du recto */
+      const vt=V.dosV?K.tex(V.dosV,dW,H-y0):null; /* verso imprimé : visuel tel que vu de derrière, recadré par la silhouette du recto */
       if(vt){x.globalCompositeOperation='source-over'; x.clearRect(0,0,cv.width,cv.height); x.save(); x.translate(cv.width,0); x.scale(-1,1); x.drawImage(vt.image,0,0,cv.width,cv.height); x.restore(); x.globalCompositeOperation='destination-in'; x.drawImage(im,0,0);}
-      const bm=(vt||KC)?Object.assign(pel({map:new THREE.CanvasTexture(cv)}).clone(),{alphaTest:0.5,side:THREE.BackSide}):new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide}), g=new THREE.PlaneGeometry(W+2*t,H-y0);
-      [[fm,-D],[bm,-D-t]].forEach(([m,z])=>{const q=new THREE.Mesh(g,m); q.position.set(W/2,y0+(H-y0)/2,z); core.add(q);});
+      const bm=(vt||KC)?Object.assign(pel({map:new THREE.CanvasTexture(cv)}).clone(),{alphaTest:0.5,side:THREE.BackSide}):new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide}), g=new THREE.PlaneGeometry(dW,H-y0);
+      [[fm,-D],[bm,-D-t]].forEach(([m,z])=>{const q=new THREE.Mesh(g,m); q.position.set(dX,y0+(H-y0)/2,z); core.add(q);});
       parts.push({m:W*H*t*MD.rho*0.6,y:H/2,d:D+t/2});
     } else box(core,-t,W+t,y0,H,D,D+t,K.faces(MD.side,{4:pel(di||MD.top),5:pel(K.img(V.dosV,W+2*t,H-y0))||verso}),MD.edge,MD.rho);
     // fentes (2 traits de coupe) : la patte ressort par la fente
