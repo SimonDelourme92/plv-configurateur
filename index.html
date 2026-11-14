@@ -1850,10 +1850,10 @@ MODELS['colonne-jade-4']={
     /* texture kraft : fond beige, fibres, mouchetures, cannelure visible en fines lignes (dessinée, sans image) */
     const kraftTex=K._kraft||(K._kraft=(()=>{const c=document.createElement('canvas'); c.width=c.height=512; const x=c.getContext('2d');
       x.fillStyle='#B89D7B'; x.fillRect(0,0,512,512);
-      for(let i=0;i<9000;i++){const v=Math.random(); x.fillStyle=v<.5?`rgba(110,80,45,${.12+Math.random()*.2})`:`rgba(230,210,175,${.12+Math.random()*.2})`; const a=Math.random()*Math.PI, l=2+Math.random()*9; x.save(); x.translate(Math.random()*512,Math.random()*512); x.rotate(a); x.fillRect(0,0,l,.8); x.restore();}
-      for(let i=0;i<1600;i++){x.fillStyle=`rgba(${Math.random()<.5?'80,55,30':'240,225,195'},${.15+Math.random()*.3})`; x.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*1.5,1+Math.random()*1.5);}
-      for(let y=0;y<512;y+=6){x.fillStyle='rgba(110,85,55,0.12)'; x.fillRect(0,y,512,2);} 
-      const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(3,10); t.anisotropy=8; return t;})());
+      for(let i=0;i<16000;i++){const v=Math.random(); x.fillStyle=v<.5?`rgba(95,65,35,${.2+Math.random()*.25})`:`rgba(235,215,180,${.2+Math.random()*.25})`; const a=Math.random()*Math.PI, l=2+Math.random()*9; x.save(); x.translate(Math.random()*512,Math.random()*512); x.rotate(a); x.fillRect(0,0,l,.8); x.restore();}
+      for(let i=0;i<3500;i++){x.fillStyle=`rgba(${Math.random()<.5?'80,55,30':'240,225,195'},${.15+Math.random()*.3})`; x.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*1.5,1+Math.random()*1.5);}
+      for(let y=0;y<512;y+=6){x.fillStyle='rgba(95,70,45,0.2)'; x.fillRect(0,y,512,2);} 
+      const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(5,16); t.anisotropy=8; return t;})());
     const kraftW=K._kraftW||(K._kraftW=(()=>{const t=kraftTex.clone(); t.needsUpdate=true; t.repeat.set(1/30,1/30); return t;})());
     const kraftMat=(dark,world)=>new THREE.MeshLambertMaterial({map:world?kraftW:kraftTex,color:dark?0xE6DCCC:0xFFFFFF});
     const BRUTX=KRAFT?kraftMat(true,true):null;
