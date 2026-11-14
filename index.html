@@ -1800,7 +1800,8 @@ MODELS['stoprayon-carte']={
     // joues galbées (recto à l'intérieur) + pattes
     if(jH>0.2&&jD>0.2){
       const sp=new THREE.Shape(); sp.moveTo(D,yF); sp.lineTo(D,yF+jH);
-      if(P.jShape==='droite') sp.lineTo(D-jD,yF); else for(let i=1;i<=32;i++){const a=i/32*Math.PI/2; sp.lineTo(D-jD*Math.sin(a),yF+jH*Math.cos(a));}
+      if(Array.isArray(P.jPts)&&P.jPts.length>1){const mx=Math.max(...P.jPts.map(p=>p[0])), mh=Math.max(...P.jPts.map(p=>p[1])); P.jPts.forEach(([u,h])=>sp.lineTo(D-u*jD/mx,yF+h*jH/mh));} /* contour relevé sur le tracé (u depuis le dos, h) */
+      else if(P.jShape==='droite') sp.lineTo(D-jD,yF); else for(let i=1;i<=32;i++){const a=i/32*Math.PI/2; sp.lineTo(D-jD*Math.sin(a),yF+jH*Math.cos(a));}
       sp.lineTo(D,yF);
       const area=P.jShape==='droite'?jD*jH/2:Math.PI*jD*jH/4, im=K.img(V.joues,jD,jH);
       const rr=Math.min(0.6,tw/3), tabTop=Math.max(0.5,tl-(yF+t)-si-2*t); /* longueur ressortie sur le fond */
@@ -1818,7 +1819,7 @@ MODELS['stoprayon-carte']={
         {const [a,b]=Lx(-t,si+t); box(core,a,b,0,y0,dA,dB,K.faces(verso,{2:face}),MJ.edge);}                       // sous le fond
         {const [a,b]=sg>0?[si,si+t]:[W-si-t,W-si]; box(core,a,b,0,yF+t,dA,dB,verso,MJ.edge);}      // dans la fente
         { const s=new THREE.Shape(), L=tabTop; s.moveTo(0,0); s.lineTo(L-rr,0); s.quadraticCurveTo(L,0,L,rr); s.lineTo(L,tw-rr); s.quadraticCurveTo(L,tw,L-rr,tw); s.lineTo(0,tw); s.closePath(); /* bout arrondi */
-          const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:8}), tm=new THREE.Mesh(g,[KC?Object.assign(out.clone(),{side:THREE.DoubleSide}):vb(30,30,THREE.DoubleSide),Object.assign(MJ.side.clone(),{side:THREE.DoubleSide})]); /* face visible = verso de la patte */
+          const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:8}), tm=new THREE.Mesh(g,[KC?Object.assign(pel(fi||MF.top).clone(),{side:THREE.DoubleSide}) /* patte imprimée comme le fond (raccord) */:vb(30,30,THREE.DoubleSide),Object.assign(MJ.side.clone(),{side:THREE.DoubleSide})]); /* face visible = verso de la patte */
           tm.rotation.x=Math.PI/2; tm.scale.x=sg; tm.position.set(sg>0?si:W-si,yF+t,-dB); core.add(tm);
           const te=new THREE.LineSegments(new THREE.EdgesGeometry(g,30),MJ.edge); te.rotation.copy(tm.rotation); te.scale.copy(tm.scale); te.position.copy(tm.position); core.add(te); }
       });
