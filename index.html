@@ -1750,7 +1750,7 @@ MODELS['stoprayon-carte']={
   defaults:{W:15.2,D:22,H:41,t:0.65,jH:18,jD:13.8,jShape:'arrondie',flatOri:'portrait',tabW:3.5,tabL:5,slotIn:1,pel:'aucun',verso:'blanc',dosCut:false,
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:5,mat_dos:'carte-500',mat_fond:'carte-500',mat_joues:'carte-500'},
   parts:[{key:'dos',label:'Dos',short:'dos',use:'panel'},{key:'fond',label:'Fond',short:'fond',use:'panel'},{key:'joues',label:'Joues',short:'joues',use:'panel'}],
-  slots:[{key:'dos',label:'Dos',sub:'face avant',short:'dos'},{key:'joues',label:'Joues',sub:'les deux côtés',short:'joues'},{key:'fond',label:'Fond',sub:'dessus',short:'fond'}],
+  slots:[{key:'dos',label:'Dos',sub:'face avant',short:'dos'},{key:'dosV',label:'Dos – verso',sub:'si imprimé recto-verso',short:'dos verso'},{key:'joues',label:'Joues',sub:'intérieur (et extérieur si pas de verso)',short:'joues'},{key:'jouesV',label:'Joues – extérieur',sub:'si imprimé recto-verso',short:'joues ext.'},{key:'fond',label:'Fond',sub:'dessus',short:'fond'}],
   structure(ui){
     ui.group('Dos et fond',[F_('W','Largeur',8,80,0.1,'cm'),F_('H','Hauteur du dos',8,150,0.5,'cm'),F_('D','Profondeur du fond',4,50,0.1,'cm'),
       F_('t','Épaisseur de la carte',0.3,3,0.05,'mm','Carte 500 g/m² ≈ 0,65 mm.')]);
@@ -1787,10 +1787,12 @@ MODELS['stoprayon-carte']={
       const im=dct.image, cv=document.createElement('canvas'); cv.width=im.width; cv.height=im.height; const x=cv.getContext('2d'); x.drawImage(im,0,0); x.globalCompositeOperation='source-in';
       const pc=document.createElement('canvas'); pc.width=pc.height=Math.max(8,Math.round(30*cv.height/(H-y0))); pc.getContext('2d').drawImage(MB_BRUT_C,0,0,pc.width,pc.height);
       x.fillStyle=x.createPattern(pc,'repeat'); x.fillRect(0,0,cv.width,cv.height); if(P.verso==='kraft'){x.globalCompositeOperation='multiply'; x.fillStyle='#B08A62'; x.fillRect(0,0,cv.width,cv.height); x.globalCompositeOperation='destination-in'; x.drawImage(im,0,0);}
-      const bm=new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide}), g=new THREE.PlaneGeometry(W+2*t,H-y0);
+      const vt=V.dosV?K.tex(V.dosV,W+2*t,H-y0):null; /* verso imprimé : visuel tel que vu de derrière, recadré par la silhouette du recto */
+      if(vt){x.globalCompositeOperation='source-over'; x.clearRect(0,0,cv.width,cv.height); x.save(); x.translate(cv.width,0); x.scale(-1,1); x.drawImage(vt.image,0,0,cv.width,cv.height); x.restore(); x.globalCompositeOperation='destination-in'; x.drawImage(im,0,0);}
+      const bm=vt?Object.assign(pel({map:new THREE.CanvasTexture(cv)}).clone(),{alphaTest:0.5,side:THREE.BackSide}):new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide}), g=new THREE.PlaneGeometry(W+2*t,H-y0);
       [[fm,-D],[bm,-D-t]].forEach(([m,z])=>{const q=new THREE.Mesh(g,m); q.position.set(W/2,y0+(H-y0)/2,z); core.add(q);});
       parts.push({m:W*H*t*MD.rho*0.6,y:H/2,d:D+t/2});
-    } else box(core,-t,W+t,y0,H,D,D+t,K.faces(MD.side,{4:pel(di||MD.top),5:verso}),MD.edge,MD.rho);
+    } else box(core,-t,W+t,y0,H,D,D+t,K.faces(MD.side,{4:pel(di||MD.top),5:pel(K.img(V.dosV,W+2*t,H-y0))||verso}),MD.edge,MD.rho);
     // fentes (2 traits de coupe) : la patte ressort par la fente
     const slit=new THREE.MeshBasicMaterial({color:0x2a2724});
     [si,W-si].forEach(x=>{box(core,x-0.04,x+0.04,yF,yF+0.01,D-jD,D-jD+tw+0.1,slit,null); box(core,x-0.04,x+0.04,y0-0.01,y0,D-jD,D-jD+tw+0.1,slit,null);});
@@ -1804,7 +1806,9 @@ MODELS['stoprayon-carte']={
       [[-t,1],[W,-1]].forEach(([x,sg])=>{
         const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:32});
         const uv=geo.attributes.uv,pos=geo.attributes.position; const g0=geo.groups[0]; for(let k=g0.start;k<g0.start+g0.count;k++){const vi=geo.index?geo.index.getX(k):k; let u=(pos.getX(vi)-(D-jD))/jD; if(pos.getZ(vi)<t/2) u=1-u; uv.setXY(vi,u,(pos.getY(vi)-yF)/jH);} uv.needsUpdate=true; /* visuel lisible (non inversé) des deux côtés de chaque joue */
-        const face=pel(im||MJ.top), m=new THREE.Mesh(geo,[face,MJ.side]); m.rotation.y=Math.PI/2; m.position.set(x,0,0); core.add(m);
+        const face=pel(im||MJ.top), out=pel(K.img(V.jouesV,jD,jH))||face; /* extérieur : visuel verso si fourni */
+        { const n=g0.count/2, gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,n,sg>0?2:0); geo.addGroup(g0.start+n,n,sg>0?0:2); geo.addGroup(gS.start,gS.count,1); } /* capot z=0 puis z=t ; côté extérieur = z=0 à gauche, z=t à droite */
+        const m=new THREE.Mesh(geo,[face,MJ.side,out]); m.rotation.y=Math.PI/2; m.position.set(x,0,0); core.add(m);
         const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MJ.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); core.add(e);
         parts.push({m:area*t*MJ.rho,y:jH/3,d:D-jD/3});
         // patte : descend le long du chant du fond, passe dessous, remonte dans la fente, ressort à plat sur le fond (vers l'intérieur)
