@@ -2959,7 +2959,8 @@ const K={
   bookFace(i,bw,bh){
     const ci=((i%8)+8)%8, V=curV(), n=V.covers.length;
     const cv=n?V.covers[((i%n)+n)%n]:null, front=cv?(imgMat(cv,bw,bh)||coverMats[ci]):coverMats[ci];
-    if(cv&&cv.spine){K._sp=K._sp||{}; const sp=K._sp[cv.spine]||(K._sp[cv.spine]=new THREE.MeshLambertMaterial({color:cv.spine})); return [MAT.pages,sp,MAT.pages,MAT.pages,front,sp];} // couleur de dos / 4e fixée par la couverture
+    if(cv&&(cv.spine||cv.spineUrl)){K._sp=K._sp||{}; const sp=K._sp[cv.spine||'#222']||(K._sp[cv.spine||'#222']=new THREE.MeshLambertMaterial({color:cv.spine||'#222'}));
+      const dos=cv.spineUrl?(imgMat({id:cv.id+'_dos',url:cv.spineUrl,fit:'cover'},cv.spineW||bh*0.12,bh)||sp):sp; return [MAT.pages,dos,MAT.pages,MAT.pages,front,sp];} // dos imprimé (image) ou couleur unie // couleur de dos / 4e fixée par la couverture
     return [MAT.pages,spineMats[ci],MAT.pages,MAT.pages,front,coverMats[ci]];
   },
   bookSpine:ci=>[coverMats[ci],coverMats[ci],MAT.pages,MAT.pages,spineMats[ci],MAT.pages],
@@ -3403,7 +3404,7 @@ async function fitDoc(url){let m=1400,q=0.85,u=url; for(let i=0;i<6;i++){if(u&&u
 function snapThumb(){try{renderer.render(scene,camera); const src=renderer.domElement, c=document.createElement('canvas'), w=360, h=Math.round(w*src.height/src.width);
   c.width=w; c.height=h; c.getContext('2d').drawImage(src,0,0,w,h); return c.toDataURL('image/jpeg',0.75);}catch(e){return null;}}
 function visImages(V){const out=[]; (V.decals||[]).forEach(v=>{if(v&&v.url) out.push(['decal',v]);}); Object.entries(V).forEach(([k,v])=>{if(v&&v.url) out.push([k,v]);}); (V.covers||[]).forEach((v,i)=>{if(v&&v.url) out.push(['covers.'+i,v]);}); return out;}
-function visMeta(V){const m={}; Object.entries(V).forEach(([k,v])=>{if(k==='decals') m.decals=(v||[]).map(d=>Object.assign({},d,{url:undefined})); else if(k==='covers') m.covers=(v||[]).map(c=>({id:c.id,name:c.name,fit:c.fit,spine:c.spine})); else if(v&&typeof v==='object'&&v.url) m[k]={id:v.id,name:v.name,fit:v.fit,alpha:v.alpha}; else m[k]=v;}); return m;}
+function visMeta(V){const m={}; Object.entries(V).forEach(([k,v])=>{if(k==='decals') m.decals=(v||[]).map(d=>Object.assign({},d,{url:undefined})); else if(k==='covers') m.covers=(v||[]).map(c=>({id:c.id,name:c.name,fit:c.fit,spine:c.spine,spineUrl:c.spineUrl,spineW:c.spineW})); else if(v&&typeof v==='object'&&v.url) m[k]={id:v.id,name:v.name,fit:v.fit,alpha:v.alpha}; else m[k]=v;}); return m;}
 async function svWrite(id,name){
   const V=curV(), now=new Date().toISOString(), old=id?(await svList()).find(x=>x.id===id):null;
   const info=Object.assign({},(old&&old.info)||{},svInfo||{}); svInfo=null;
