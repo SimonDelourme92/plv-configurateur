@@ -1877,13 +1877,13 @@ MODELS['colonne-jade-4']={
       return a;};
     const fold=(a,M,idx)=>{idx.forEach(i=>a[i]=coat(M)); return a;}; // plis : pas de tranche visible
     const CHANT=chant(10,2*t,false); CHANT.map.repeat.set(1/PER,1/t);
-    const dbl=(M,dims)=>{const a=mb(M,2,null,dims); a[3]=coat(M); return a;}; // tablette pliée en 2 : couché dessus et dessous
+    const dbl=(M,dims)=>[0,1,2,3,4,5].map(()=>coat(M)); // tablette pliée en 2 : tous les bords sont des plis // tablette pliée en 2 : couché dessus et dessous
     const cut=(g,sh,depth,xIn,sg,M,im,D,Hh,inner)=>{
       const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false,curveSegments:16});
       const m=new THREE.Mesh(geo,[BRUTX||BRUT,CHANT]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),M.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); g.add(e);
       {const pg=new THREE.ShapeGeometry(sh,16), pos=pg.attributes.position, uv=pg.attributes.uv;
-        for(let i=0;i<pos.count;i++){const x=pos.getX(i); uv.setXY(i,sg<0?(x+D)/D:x/D,pos.getY(i)/Hh);} uv.needsUpdate=true;
+        for(let i=0;i<pos.count;i++){const x=pos.getX(i); uv.setXY(i,0.006+0.988*(sg<0?(x+D)/D:x/D),0.004+0.992*pos.getY(i)/Hh);} uv.needsUpdate=true;
         const pm=new THREE.Mesh(pg,im||coat(M)); pm.rotation.y=sg*Math.PI/2; pm.position.x=xIn+sg*(depth+0.05); g.add(pm);
         if(inner){const ci=coat(M).clone(); ci.side=THREE.BackSide; const pi=new THREE.Mesh(new THREE.ShapeGeometry(inner),ci); pi.rotation.y=pm.rotation.y; pi.position.x=xIn-sg*0.05; g.add(pi);}}
     };
@@ -1907,7 +1907,7 @@ MODELS['colonne-jade-4']={
     for(let k=0;k<N;k++){
       const s0=P.s1+k*P.pitch; if(s0+lipH>Hs-1) break;
       const sTop=k<N-1&&P.s1+(k+1)*P.pitch+lipH<=Hs-1?P.s1+(k+1)*P.pitch:Hs, clear=sTop-(s0+t2); clearMin=Math.min(clearMin,clear);
-      K.box(body,-shW/2,shW/2,s0,s0+lipH,shO-lipT,shO,(()=>{const a=mb(MS,4,null,[shW,lipH,lipT]); a[2]=coat(MS); return a;})(),MS.edge);              // nez
+      K.box(body,-shW/2,shW/2,s0,s0+lipH,shO-lipT,shO,[0,1,2,3,4,5].map(()=>coat(MS)) /* nez : pli, pas de tranche */,MS.edge);              // nez
       K.box(body,-shW/2,shW/2,s0,s0+t2,shO-wideD,shO-lipT,dbl(MS,[shW,t2,wideD-lipT]),MS.edge);            // partie large (ailes dans les joues)
       if(shD>wideD) K.box(body,-W/2,W/2,s0,s0+t2,shO-shD,shO-wideD,dbl(MS,[W,t2,shD-wideD]),MS.edge);   // partie étroite entre les joues
       // patte qui traverse le dos (fente 8 × 80 mm) + goupille en T glissée dans le trou des 2 épaisseurs
