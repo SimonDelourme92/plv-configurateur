@@ -2010,7 +2010,10 @@ ST.P=ST.P||{}; Object.entries(RENAME).forEach(([o,n])=>{if(ST.P[o]&&!ST.P[n]) ST
 if(!MODELS[ST.type]) ST.type='comptoir-bois';
 ST.sub=Object.assign({comptoir:'comptoir-bois',tourniquet:'tourniquet-bois',stoprayon:'stoprayon-carte',sol:'colonne-jade-4'},ST.sub||{});
 if(ST.G&&'showHuman' in ST.G){ST.G.showCounter=ST.G.showPerson=!!ST.G.showHuman; delete ST.G.showHuman;}
-ST.G=Object.assign({},G_DEFAULTS,ST.G||{}); ST.P=ST.P||{}; ST.tab=ST.tab||'modele';
+ST.G=Object.assign({},G_DEFAULTS,ST.G||{}); ST.P=ST.P||{};
+/* migration : débord des tablettes des colonnes 6,5 → 4,5 cm (réglages mémorisés et sauvegardes) */
+const migP=(t,P)=>{if(P&&(t==='colonne-jade-4'||t==='colonne-xd-4')&&P.shO===6.5) P.shO=4.5; return P;};
+Object.keys(ST.P).forEach(k=>migP(k,ST.P[k])); ST.tab=ST.tab||'modele';
 const OLDMAT={boisclair:'cp-bouleau',boisfonce:'chene',cartonblanc:'carton-blanc',kraft:'carton-kraft',noir:'mdf-noir'};
 Object.keys(MODELS).forEach(k=>{
   const p=ST.P[k]||{};
@@ -3474,7 +3477,7 @@ async function svOpen(id){
   if(SV.mode==='db'){const q=await SV.db.collection('data/users/'+SV.uid+'/'+id+'/img').get(); q.docs.forEach(x=>imgs[x.id]=x.data().url);} else imgs=await svLocalImgs(id,d);
   if(!MODELS[d.type]) return; regMats(d);
   ST.type=d.type; const c=MODELS[d.type].cat; ST.sub=ST.sub||{}; ST.sub[c]=d.type;
-  ST.P[d.type]=Object.assign({},MODELS[d.type].defaults,d.P||{}); Object.assign(G,d.G||{});
+  ST.P[d.type]=migP(d.type,Object.assign({},MODELS[d.type].defaults,d.P||{})); Object.assign(G,d.G||{});
   const V={covers:[]}; Object.entries(d.V||{}).forEach(([k,v])=>{
     if(k==='covers') V.covers=(v||[]).filter(c=>imgs[c.id]).map(c=>Object.assign({},c,{url:imgs[c.id]}));
     else if(k==='decals') V.decals=(v||[]).filter(c=>imgs[c.id]).map(c=>Object.assign({},c,{url:imgs[c.id]}));
