@@ -1751,7 +1751,7 @@ MODELS['stoprayon-carte']={
   defaults:{W:15.2,D:22,H:41,t:0.65,jH:18,jD:13.8,jShape:'arrondie',flatOri:'portrait',tabW:3.5,tabL:5,slotIn:1,pel:'aucun',verso:'couche',dosCut:false,
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:5,mat_dos:'carte-500',mat_fond:'carte-500',mat_joues:'carte-500'},
   parts:[{key:'dos',label:'Dos',short:'dos',use:'panel'},{key:'fond',label:'Fond',short:'fond',use:'panel'},{key:'joues',label:'Joues',short:'joues',use:'panel'}],
-  slots:[{key:'dos',label:'Dos',sub:'face avant',short:'dos'},{key:'dosV',label:'Dos – verso',sub:'si imprimé recto-verso',short:'dos verso'},{key:'joues',label:'Joues',sub:'intérieur (et extérieur si pas de verso)',short:'joues'},{key:'jouesV',label:'Joues – extérieur',sub:'si imprimé recto-verso',short:'joues ext.'},{key:'fond',label:'Fond',sub:'dessus',short:'fond'},{key:'fondV',label:'Fond – dessous',sub:'si imprimé recto-verso',short:'fond dessous'}],
+  slots:[{key:'dos',label:'Dos',sub:'face avant',short:'dos'},{key:'dosV',label:'Dos – verso',sub:'si imprimé recto-verso',short:'dos verso'},{key:'joues',label:'Joue gauche – intérieur',sub:'(sert aussi pour la droite si pas d’autre visuel)',short:'joues'},{key:'jouesD',label:'Joue droite – intérieur',sub:'si différente de la gauche',short:'joue dr.'},{key:'jouesV',label:'Joue droite – extérieur',sub:'si imprimé recto-verso',short:'joue dr. ext.'},{key:'jouesVG',label:'Joue gauche – extérieur',sub:'si différente de la droite',short:'joue g. ext.'},{key:'fond',label:'Fond',sub:'dessus',short:'fond'},{key:'fondV',label:'Fond – dessous',sub:'si imprimé recto-verso',short:'fond dessous'}],
   structure(ui){
     ui.group('Dos et fond',[F_('W','Largeur',8,80,0.1,'cm'),F_('H','Hauteur du dos',8,150,0.5,'cm'),F_('D','Profondeur du fond',4,50,0.1,'cm'),
       F_('t','Épaisseur de la carte',0.3,3,0.05,'mm','Carte 500 g/m² ≈ 0,65 mm.')]);
@@ -1805,12 +1805,12 @@ MODELS['stoprayon-carte']={
       if(Array.isArray(P.jPts)&&P.jPts.length>1){const mx=Math.max(...P.jPts.map(p=>p[0])), mh=Math.max(...P.jPts.map(p=>p[1])); P.jPts.forEach(([u,h])=>sp.lineTo(D-u*jD/mx,yF+h*jH/mh));} /* contour relevé sur le tracé (u depuis le dos, h) */
       else if(P.jShape==='droite') sp.lineTo(D-jD,yF); else for(let i=1;i<=32;i++){const a=i/32*Math.PI/2; sp.lineTo(D-jD*Math.sin(a),yF+jH*Math.cos(a));}
       sp.lineTo(D,yF);
-      const area=P.jShape==='droite'?jD*jH/2:Math.PI*jD*jH/4, im=K.img(V.joues,jD,jH);
+      const area=P.jShape==='droite'?jD*jH/2:Math.PI*jD*jH/4, imG=K.img(V.joues,jD,jH), imD=V.jouesD?K.img(V.jouesD,jD,jH):imG;
       const rr=Math.min(0.6,tw/3), tabTop=Math.max(0.5,tl-(yF+t)-si-2*t); /* longueur ressortie sur le fond */
       [[-t,1],[W,-1]].forEach(([x,sg])=>{
         const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:32});
         const uv=geo.attributes.uv,pos=geo.attributes.position; const g0=geo.groups[0]; for(let k=g0.start;k<g0.start+g0.count;k++){const vi=geo.index?geo.index.getX(k):k; let u=(pos.getX(vi)-(D-jD))/jD; if(pos.getZ(vi)<t/2) u=1-u; uv.setXY(vi,u,(pos.getY(vi)-yF)/jH);} uv.needsUpdate=true; /* visuel lisible (non inversé) des deux côtés de chaque joue */
-        const face=pel(im||MJ.top), out=pel(K.img(V.jouesV,jD,jH))||face; /* extérieur : visuel verso si fourni */
+        const im=sg>0?imG:imD, face=pel(im||MJ.top), out=pel(K.img((sg>0&&V.jouesVG)||V.jouesV,jD,jH))||face; /* joue gauche : son propre visuel extérieur si fourni (jouesVG) */ /* extérieur : visuel verso si fourni */
         { const n=g0.count/2, gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,n,sg>0?2:0); geo.addGroup(g0.start+n,n,sg>0?0:2); geo.addGroup(gS.start,gS.count,1); } /* capot z=0 puis z=t ; côté extérieur = z=0 à gauche, z=t à droite */
         const m=new THREE.Mesh(geo,[face,MJ.side,out]); m.rotation.y=Math.PI/2; m.position.set(x,0,0); core.add(m);
         const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MJ.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); core.add(e);
