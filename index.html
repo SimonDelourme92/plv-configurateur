@@ -1821,7 +1821,9 @@ MODELS['stoprayon-carte']={
       const xa=x0+p*(fx+gap), xb=xa+fx, dB=D, dA=D-fz;
       for(let i=0;i<per;i++){
         const ya=yb0+i*bt, yb=yb0+(i+1)*bt-0.04, ci=i+p*3, fm=K.bookFace(ci,fx,fz);
-        const mats=clash?K.mat.clash:[fm[0],fm[1],fm[4],K.mat.pages,K.mat.pages,K.mat.pages];
+        /* livre à plat : feuilles horizontales sur les 3 tranches, couverture dessus, 4e dessous, dos à gauche (portrait) ou au fond (paysage) */
+        const PV=PAGES.v, rs=m=>{if(!m||!m.map) return m; K._rs=K._rs||new Map(); if(!K._rs.has(m)){const c=m.clone(); c.map=m.map.clone(); c.map.needsUpdate=true; c.map.center.set(.5,.5); c.map.rotation=Math.PI/2; K._rs.set(m,c);} return K._rs.get(m);};
+        const mats=clash?K.mat.clash:(land?[PV,PV,fm[4],fm[5],PV,fm[1]]:[PV,rs(fm[1]),fm[4],fm[5],PV,PV]);
         box(books,xa,xb,ya,yb,dA,dB,mats,per*nP<=400?K.mat.bookEdge:null);
       }
       parts.push({m:fx*fz*bt*per*0.75,y:yF+per*bt/2,d:D-fz/2});
