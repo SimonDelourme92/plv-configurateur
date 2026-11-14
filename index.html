@@ -561,6 +561,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
       <span class="sp"></span>
       <button class="tbtn" id="spin" aria-pressed="false" hidden>Faire tourner</button>
       <button class="tbtn" id="roomView" hidden>Vue d’ensemble</button>
+      <button class="tbtn" id="walkBtn" aria-pressed="false" title="Se déplacer à hauteur d'yeux : Z/Q/S/D ou flèches pour marcher, glisser pour regarder, molette pour avancer, Maj pour aller plus vite, Échap pour sortir">Marcher</button>
       <label class="simpick"><span class="lab">Décor</span><select id="environmentSelect" aria-label="Décor 3D"><option value="studio">Studio</option><option value="bookshop">Librairie</option></select></label>
     </div>
     <div class="alerts fold" id="alerts" aria-live="polite"></div>
@@ -2944,7 +2945,7 @@ batchShop(bookshop);
 function syncEnvironment(){
  if(!R) return;
  const on=environmentMode==='bookshop', b=R.bounds;
- const raised=!MODELS[ST.type].floor;
+ const raised=!MODELS[ST.type].floor&&!(R&&R.cmp);
  const elevation=raised?Math.max(1,G.counterH||94):0;
  bookshop.visible=on;
  skyLight.intensity=on?0.8:1.0; skyLight.color.setHex(on?0xfff3e0:0xfffaf2); skyLight.groundColor.setHex(on?0xd9c9ae:0xe2ded6); sun.intensity=on?0.3:0.36;
@@ -3221,18 +3222,19 @@ function buildPerson(){
 function disposeTree(o){o.traverse(c=>{if(c.geometry) c.geometry.dispose(); if(c.isSprite&&c.material.map) c.material.map.dispose();
   if(c.material&&!Array.isArray(c.material)&&c.material.map&&!c.isSprite&&!Object.values(texCache).includes(c.material.map)) c.material.map.dispose();});}
 
-let root=null, R=null;
+let root=null, R=null, FLOORY=0;
 function build(){
   if(root){scene.remove(root); disposeTree(root);}
   root=new THREE.Group(); scene.add(root);
   R=(typeof CMP!=='undefined'&&CMP.on&&CMP.items.length)?buildCompare():MODELS[ST.type].build(curP(),G,K,curV());
   root.add(R.core);
   const b=R.bounds, cxm=(b.x0+b.x1)/2, czm=(b.z0+b.z1)/2, sz=Math.max(1.6,b.Htot/40);
-  if(G.showHand){
+  const NOM=!!R.cmp; /* comparaison : ni cotes ni repères d'échelle */
+  if(G.showHand&&!NOM){
     const h=buildHand(); h.position.set(b.x1+R.pad.right,b.yBase+4.5,czm); root.add(h);
     const l=label('main ≈ 19 cm',Math.max(1.6,sz*0.9)); l.position.set(h.position.x,b.yBase-2,czm); root.add(l);
   }
-  if(G.showCan){
+  if(G.showCan&&!NOM){
     const can=new THREE.Group(); root.add(can);
     const c1=new THREE.Mesh(new THREE.CylinderGeometry(3.3,3.3,10.3,40),MAT.canRed); c1.position.y=0.6+5.15; can.add(c1);
     const lid=new THREE.Mesh(new THREE.CylinderGeometry(2.7,3.3,0.6,40),MAT.alu); lid.position.y=11.2; can.add(lid);
@@ -3240,24 +3242,25 @@ function build(){
     can.position.set(b.x0-R.pad.left,b.yBase,b.z1+R.pad.front);
     const l=label('canette 33 cl',Math.max(1.5,sz*0.8)); l.position.set(0,-2.2,0); can.add(l);
   }
-  if(G.showA4){
+  if(G.showA4&&!NOM){
     const sh=new THREE.Mesh(new THREE.PlaneGeometry(29.7,21),MAT.a4); sh.rotation.x=-Math.PI/2; sh.position.set(cxm,b.yBase-0.06,czm); root.add(sh);
     const ol=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(29.7,21)),MAT.a4Edge);
     ol.rotation.copy(sh.rotation); ol.position.copy(sh.position); ol.position.y+=0.01; ol.computeLineDistances(); root.add(ol);
   }
-  const CH=G.counterH, fy=b.yBase-0.3-CH, floorY=G.showCounter?fy:b.yBase-0.15, front=b.z1+12;
-  if(G.showCounter){
+  const CH=G.counterH, SC=G.showCounter&&!NOM, fy=b.yBase-0.3-CH, floorY=SC?fy:b.yBase-0.15, front=b.z1+12;
+  if(SC){
     const cw=Math.max(140,(b.x1-b.x0)+100), cd=Math.max(60,(b.z1-b.z0)+30);
     const counter=new THREE.Mesh(new THREE.BoxGeometry(cw,CH,cd),MAT.counter); counter.position.set(cxm,b.yBase-0.3-CH/2,front-cd/2); root.add(counter); counter.userData.studioCounter=true;
     const ce=new THREE.LineSegments(new THREE.EdgesGeometry(counter.geometry),MAT.counterEdge); ce.position.copy(counter.position); root.add(ce); ce.userData.studioCounter=true;
     const l2=label('comptoir '+CH+' cm',4); l2.position.set(cxm-cw/2-14,b.yBase-CH/2,front-cd/2); root.add(l2); l2.userData.studioCounter=true;
   }
   if(G.showPerson){
-    const pz=G.showCounter?front+28:b.z1+(R.pad.front||8)+30, px=G.showCounter?cxm:cxm-(b.x1-b.x0)/2-45;
+    const pz=SC?front+28:b.z1+(R.pad.front||8)+30, px=SC?cxm:cxm-(b.x1-b.x0)/2-45;
     const p=buildPerson(); p.position.set(px,floorY,pz); root.add(p);
-    const l1=label('silhouette 1,75 m',5,true); l1.position.set(px+42,floorY+150,pz); root.add(l1);
+    if(!NOM){const l1=label('silhouette 1,75 m',5,true); l1.position.set(px+42,floorY+150,pz); root.add(l1);}
   }
-  grid.position.set(cxm,floorY,czm);
+  grid.position.set(cxm,floorY,czm); {const gs=Math.max(1,Math.ceil((Math.max(b.x1-b.x0,b.z1-b.z0)+300)/500)); grid.scale.set(gs,1,gs);} /* studio agrandi selon l'emprise */
+  FLOORY=floorY;
   syncEnvironment();
   renderSummary();
 }
@@ -3775,18 +3778,30 @@ async function cmpLoad(id){const d=(await svList()).find(x=>x.id===id); if(!d||!
     else if(v&&typeof v==='object'&&v.id){if(imgs[v.id]) V[k]=Object.assign({},v,{url:imgs[v.id]});} else if(k!=='_owner') V[k]=v;});
   return {id,name:d.name||'Sans nom',d,V,P:migP(d.type,Object.assign({},MODELS[d.type].defaults,d.P||{}))};}
 function buildCompare(){
-  const grp=new THREE.Group(), keepT=ST.type, keepD=G.showDims, gap=25; let x=0, H=0, z0=0, z1=0, first=null;
-  G.showDims=false;
+  /* Comparaison : les PLV de comptoir et tout ce qui fait moins de 50 cm sont rangés sur des tables (75 cm), les PLV de sol posées au sol. Pas de cotes. */
+  const grp=new THREE.Group(), keepT=ST.type, keepD=G.showDims, gap=25, TH=75, TMAX=170, tgap=12;
+  G.showDims=false; const built=[];
   CMP.items.forEach(it=>{const t=it.d.type, keepV=VIS[t]; ST.type=t; VIS[t]=it.V;
     let r; try{r=MODELS[t].build(it.P,G,K,it.V);}catch(e){console.warn(e); VIS[t]=keepV; return;}
-    VIS[t]=keepV; const b=r.bounds, w=b.x1-b.x0;
-    r.core.position.x=x-b.x0; r.core.position.y=-b.yBase; grp.add(r.core);
-    const l=label(it.name,Math.max(2,b.Htot/22)); l.position.set(x+w/2,b.Htot-b.yBase+Math.max(4,b.Htot/12)+(grp.children.length%4===3?Math.max(6,b.Htot/10):0),(b.z0+b.z1)/2); grp.add(l);
-    x+=w+gap; H=Math.max(H,b.Htot-b.yBase); z0=Math.min(z0,b.z0); z1=Math.max(z1,b.z1); if(!first) first=r;});
+    VIS[t]=keepV; r.core.traverse(o=>{if(o.userData&&o.userData.isDims) o.visible=false;});
+    const b=r.bounds, h=b.Htot-b.yBase; built.push({it,r,b,w:b.x1-b.x0,h,small:!MODELS[t].floor||h<50});});
   ST.type=keepT; G.showDims=keepD;
+  const tops=[]; let cur=null; /* remplissage des tables */
+  built.filter(x=>x.small).forEach(x=>{if(!cur||(cur.w+tgap+x.w>TMAX&&cur.list.length)){cur={list:[],w:0}; tops.push(cur);} cur.w+=(cur.list.length?tgap:0)+x.w; cur.list.push(x);});
+  const TM=new THREE.MeshLambertMaterial({color:0xE9E4DA}), LM=new THREE.MeshLambertMaterial({color:0x8B8F94});
+  let x=0, H=0, z0=0, z1=0;
+  const place=(e,X,Y)=>{e.r.core.position.set(X-e.b.x0,Y-e.b.yBase,0); grp.add(e.r.core);
+    const l=label(e.it.name,Math.max(2,Math.min(4,e.h/14))); l.position.set(X+e.w/2,Y+e.h+Math.max(4,e.h/12),(e.b.z0+e.b.z1)/2); grp.add(l);
+    H=Math.max(H,Y+e.h); z0=Math.min(z0,e.b.z0); z1=Math.max(z1,e.b.z1);};
+  tops.forEach(tb=>{const dz0=Math.min(...tb.list.map(e=>e.b.z0)), dz1=Math.max(...tb.list.map(e=>e.b.z1)), TW=Math.max(tb.w+30,90), TD=Math.max(60,dz1-dz0+24), tc=(dz0+dz1)/2;
+    const top=new THREE.Mesh(new THREE.BoxGeometry(TW,3,TD),TM); top.position.set(x+TW/2,TH-1.5,tc); grp.add(top);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,c])=>{const lg=new THREE.Mesh(new THREE.BoxGeometry(4,TH-3,4),LM); lg.position.set(x+TW/2+a*(TW/2-5),(TH-3)/2,tc+c*(TD/2-5)); grp.add(lg);});
+    let xx=x+(TW-tb.w)/2; tb.list.forEach(e=>{place(e,xx,TH); xx+=e.w+tgap;});
+    z0=Math.min(z0,tc-TD/2); z1=Math.max(z1,tc+TD/2); x+=TW+40;});
+  built.filter(e=>!e.small).forEach(e=>{place(e,x,0); x+=e.w+gap;});
   const W=Math.max(1,x-gap); grp.position.x=-W/2;
-  return {core:grp,bounds:{x0:-W/2,x1:W/2,z0,z1,yBase:0,Htot:H},pad:{right:12,left:12,front:8},
-    kv:[['Comparaison',`${CMP.items.length} PLV`,true],['Largeur totale',`${fmt(W)} cm`]],measures:[],alerts:[],fill:null};}
+  return {core:grp,bounds:{x0:-W/2,x1:W/2,z0,z1,yBase:0,Htot:H},pad:{right:12,left:12,front:8},cmp:true,
+    kv:[['Comparaison',`${CMP.items.length} PLV`,true],['Tables',`${tops.length}`]],measures:[],alerts:[],fill:null};}
 const cmpOv=document.getElementById('cmpOverlay'), cmpList=document.getElementById('cmpList'), cmpExit=document.getElementById('cmpExit');
 let cmpSel=[]; // ordre choisi (ids)
 async function cmpRender(){let L=[]; try{L=await svList();}catch(e){} L.sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
@@ -3884,13 +3899,35 @@ addEventListener('keydown',e=>{
 // reprise de l'historique de la session précédente (réglages ; les images restent celles du moment)
 try{const h=JSON.parse(localStorage.getItem(HIST.KEY)||'null'); if(h&&Array.isArray(h.s)&&h.s.length){HIST.stack=h.s.map(x=>Object.assign({V:null},x)); HIST.i=HIST.stack.length-1;}}catch(e){}
 histPush(); histUI(); refreshSimSel();
+/* Mode marche (POV) : caméra à 160 cm du sol, déplacement clavier, regard à la souris */
+const WALK={on:false,yaw:0,pitch:-0.12,keys:{},drag:null,save:null};
+const walkBtn=document.getElementById('walkBtn');
+function walkSet(on){if(on===WALK.on) return; WALK.on=on; walkBtn.setAttribute('aria-pressed',String(on)); walkBtn.textContent=on?'Quitter la marche':'Marcher';
+  if(on){WALK.save={p:camera.position.clone(),t:controls.target.clone(),fov:camera.fov}; controls.enabled=false; anim=null;
+    const b=R.bounds, cx=(b.x0+b.x1)/2, dist=Math.max(220,(b.x1-b.x0)*0.9);
+    camera.position.set(cx,FLOORY+160,b.z1+dist); WALK.yaw=0; WALK.pitch=-0.12; camera.fov=55; camera.updateProjectionMatrix();}
+  else{controls.enabled=true; if(WALK.save){camera.position.copy(WALK.save.p); controls.target.copy(WALK.save.t); camera.fov=WALK.save.fov; camera.updateProjectionMatrix();}}
+  stage.classList.toggle('walking',on);}
+walkBtn.addEventListener('click',()=>walkSet(!WALK.on));
+function walkStep(dt){const k=WALK.keys, sp=(k.shift?260:120)*dt, f=(k.z||k.w||k.arrowup?1:0)-(k.s||k.arrowdown?1:0), st=(k.d||k.arrowright?1:0)-(k.q||k.a||k.arrowleft?1:0);
+  const fx=-Math.sin(WALK.yaw), fz=-Math.cos(WALK.yaw); camera.position.x+=(fx*f-fz*st)*sp; camera.position.z+=(fz*f+fx*st)*sp;
+  camera.position.y=FLOORY+160; const d=new THREE.Vector3(Math.cos(WALK.pitch)*fx,Math.sin(WALK.pitch),Math.cos(WALK.pitch)*fz); camera.lookAt(camera.position.clone().add(d));}
+window.addEventListener('keydown',e=>{if(!WALK.on) return; if(e.target&&e.target.closest&&e.target.closest('input,textarea,select')) return; const k=e.key.toLowerCase();
+  if(k==='escape'){walkSet(false); return;} if(['z','q','s','d','w','a','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){WALK.keys[k]=true; e.preventDefault();}});
+window.addEventListener('keyup',e=>{WALK.keys[e.key.toLowerCase()]=false;});
+window.addEventListener('blur',()=>{WALK.keys={};});
+renderer.domElement.addEventListener('pointerdown',e=>{if(!WALK.on) return; WALK.drag={x:e.clientX,y:e.clientY,yaw:WALK.yaw,pitch:WALK.pitch}; try{renderer.domElement.setPointerCapture(e.pointerId);}catch(_){}});
+renderer.domElement.addEventListener('pointermove',e=>{if(!WALK.on||!WALK.drag) return; WALK.yaw=WALK.drag.yaw-(e.clientX-WALK.drag.x)*0.005; WALK.pitch=Math.max(-1.3,Math.min(1.3,WALK.drag.pitch-(e.clientY-WALK.drag.y)*0.005));});
+renderer.domElement.addEventListener('pointerup',()=>{WALK.drag=null;});
+renderer.domElement.addEventListener('wheel',e=>{if(!WALK.on) return; e.preventDefault(); e.stopImmediatePropagation(); const fx=-Math.sin(WALK.yaw), fz=-Math.cos(WALK.yaw), s=-Math.sign(e.deltaY)*15; camera.position.x+=fx*s; camera.position.z+=fz*s;},{passive:false,capture:true});
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>walkSet(false),true));
 const clock=new THREE.Clock();
 const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 (function loop(now){
   const dt=Math.min(clock.getDelta(),0.1);
   if(G.spin&&R&&R.spinner){spinAngle+=dt*(reduce?0.15:0.5); R.spinner.rotation.y=spinAngle;}
   if(anim){const k=Math.min(1,(now-anim.start)/anim.dur),e=ease(k); camera.position.lerpVectors(anim.p0,anim.p1,e); controls.target.lerpVectors(anim.t0,anim.t1,e); if(k>=1) anim=null;}
-  controls.update(); renderer.render(scene,camera); requestAnimationFrame(loop);
+  if(WALK.on) walkStep(dt); else controls.update(); renderer.render(scene,camera); requestAnimationFrame(loop);
 })(performance.now());
 })();
 </script>
