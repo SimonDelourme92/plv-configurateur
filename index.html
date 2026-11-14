@@ -2044,7 +2044,8 @@ MODELS['porteflyer-30']={
       const m=new THREE.Mesh(pg,im||ext(MS)); m.position.z=0.05; core.add(m); }
     // bac : fond, façade, joues en biais
     const zF=Df+t; K.box(core,-Wb/2,Wb/2,0,t,0,zF,K.faces(ext(MB),{3:brut}),MB.edge);
-    const fim=K.img(V.facade,Wb,Hf); K.box(core,-Wb/2,Wb/2,0,Hf,zF-t,zF,K.faces(ext(MB),{4:fim||ext(MB),5:brut}),MB.edge);
+    const fim=K.img(V.facade,Wb,Hf), fT=0.65; /* façade repliée sur elle-même : double paroi de 6,5 mm, haut = pli (couché), retour intérieur couché */
+    K.box(core,-Wb/2,Wb/2,0,Hf,zF-fT,zF,K.faces(ext(MB),{3:brut,4:fim||ext(MB)}),MB.edge);
     const jim=K.img(V.joues,zF,Hj);
     [-1,1].forEach(sg=>{const js=new THREE.Shape(); /* joue Vasseur : monte en biais vers l'arrière, s'enclipse dans le dos, oreille arrondie qui dépasse derrière */
       const JP=[[0,0],[0,6.06],[7.24,8.71],[7.36,10.23],[7.36,14.99]], ks=zF/7.5; js.moveTo(zF,0); JP.slice(1).forEach(([u,v])=>js.lineTo(zF-u*ks,v));
@@ -2056,7 +2057,7 @@ MODELS['porteflyer-30']={
     const bw=P.bw/10, bh=P.bh/10, bt=P.bt/10, inW=Wb-2*t, nF=P.nF>0?P.nF|0:Math.max(1,Math.floor((inW+0.3)/(bw+0.3))), cap=Math.max(0,Math.floor((Df-0.2)/bt+1e-6)), per=P.auto?cap:Math.min(P.qty|0,cap);
     const books=new THREE.Group(); books.visible=G.showBooks; books.userData.isBooks=true; core.add(books);
     const step=nF>1?Math.min(bw+0.3,(inW-bw)/(nF-1)):0, totW=bw+(nF-1)*step; /* facings imposés : légèrement chevauchés si le bac est trop étroit */
-    for(let f=0;f<nF;f++){const x0=-totW/2+f*step; for(let i=0;i<per;i++){const z1=zF-t-0.05-i*bt-f*0.02, mats=K.bookFace(f+i*nF,bw,bh);
+    for(let f=0;f<nF;f++){const x0=-totW/2+f*step; for(let i=0;i<per;i++){const z1=zF-0.65-0.05-i*bt-f*0.02, mats=K.bookFace(f+i*nF,bw,bh);
       if(P.saddle){ /* dos piqué métal : section en goutte (dos plié arrondi, gouttière qui s'amincit), 2 agrafes */
         const T=bt-0.04, rr=T/2, zb=z1-T, sh=new THREE.Shape();
         sh.moveTo(x0+rr,-z1); sh.lineTo(x0+bw,-(z1-T*0.06)); sh.quadraticCurveTo(x0+bw-0.15,-(z1-T*0.45),x0+bw-0.3,-(zb+T*0.55));
