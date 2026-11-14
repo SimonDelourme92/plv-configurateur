@@ -469,6 +469,13 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 .navpad,.zoompad{opacity:.7}
 .overlay .savesbox,.overlay .sheetbox{border-radius:16px}
 .svio .note{flex-basis:100%;order:5}
+.cmplist{overflow:auto;display:flex;flex-direction:column;gap:4px;min-height:80px}
+.cmprow{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px}
+.cmprow.on{border-color:var(--accent);background:var(--accent-soft)}
+.cmprow label{flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0}
+.cmprow .nm{font-weight:600}.cmprow small{color:var(--muted)}
+.cmprow .ord{display:flex;align-items:center;gap:6px}.cmprow .ord button{border:1px solid var(--line);background:var(--panel);border-radius:7px;width:28px;height:26px}
+#cmpBtn.on{border-color:var(--accent);color:var(--accent)}
 
 @media (max-width:1100px){.app{grid-template-columns:340px minmax(0,1fr)} .cursim .lab{display:none} .tb .tl{display:none} .tb{padding:0 10px}}
 @media (max-width:880px){
@@ -493,6 +500,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
   <button class="tb" id="savesBtn" title="Ouvrir, renommer, supprimer, exporter, importer"><svg viewBox="0 0 16 16"><path d="M2 4.5A1.5 1.5 0 013.5 3H6l1.5 1.5h5A1.5 1.5 0 0114 6v5.5a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 11.5z"/></svg><span class="tl">Mes simulations</span></button>
   <button class="tb save" id="quickSave" hidden title="Enregistrer les modifications dans cette simulation"><svg viewBox="0 0 16 16"><path d="M3 2.5h8l2.5 2.5v8.5h-11z"/><path d="M5 2.5v3.5h5V2.5M5 13.5v-4h6v4"/></svg><span class="tl">Enregistrer</span></button>
   <button class="tb save" id="simAdd" title="Enregistrer comme nouvelle simulation"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg><span class="tl">Enregistrer sous…</span></button>
+  <button class="tb" id="cmpBtn" title="Voir plusieurs simulations côte à côte"><svg viewBox="0 0 16 16"><rect x="1.5" y="3" width="4" height="10" rx="1"/><rect x="6.5" y="5" width="3" height="8" rx="1"/><rect x="10.5" y="2" width="4" height="11" rx="1"/></svg><span class="tl">Comparer</span></button>
   <button class="tb primary" id="sheet">Générer la planche</button>
 </header>
 
@@ -556,6 +564,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
       <label class="simpick"><span class="lab">Décor</span><select id="environmentSelect" aria-label="Décor 3D"><option value="studio">Studio</option><option value="bookshop">Librairie</option></select></label>
     </div>
     <div class="alerts fold" id="alerts" aria-live="polite"></div>
+    <button type="button" class="tb primary" id="cmpExit" hidden style="position:absolute;z-index:6;top:62px;right:14px">✕ Quitter la comparaison</button>
     <div class="strip"><div class="chips fold" id="chips"></div></div>
   </div>
 </div>
@@ -581,6 +590,14 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
       <p class="note" id="svMsg"></p></form>
     <div class="svio"><button type="button" class="btn" id="svExport">Exporter la simulation (.json)</button><button type="button" class="btn" id="svExportAll">Tout exporter (.json)</button><label class="btn">Importer un ou plusieurs .json<input type="file" multiple accept=".json,application/json" id="svImport" hidden></label><span class="note">« Exporter la simulation » : le modèle affiché. « Tout exporter » : toutes tes sauvegardes, avec leurs visuels, et les réglages de tous les modèles ; à réimporter ici ou dans la version hors ligne.</span></div>
     <div class="svlist" id="svList" aria-live="polite"></div>
+  </div>
+</div>
+<div class="overlay" id="cmpOverlay" hidden role="dialog" aria-modal="true" aria-label="Comparer des simulations">
+  <div class="savesbox">
+    <div class="svhead"><h2>Comparer des simulations</h2><button type="button" class="btn" id="cmpClose">Fermer</button></div>
+    <p class="note">Coche les PLV à afficher côte à côte. L'ordre de gauche à droite se règle avec ◀ ▶.</p>
+    <div class="svio"><button type="button" class="btn" id="cmpAll">Tout sélectionner</button><button type="button" class="btn" id="cmpNone">Aucune</button><span class="note" id="cmpCount"></span><button type="button" class="btn primary" id="cmpGo">Afficher côte à côte</button><span class="note" id="cmpMsg"></span></div>
+    <div class="cmplist" id="cmpList"></div>
   </div>
 </div>
 <div class="overlay" id="sheetOverlay" hidden role="dialog" aria-modal="true" aria-label="Planche générée">
@@ -2032,10 +2049,13 @@ MODELS['porteflyer-30']={
     const books=new THREE.Group(); books.visible=G.showBooks; books.userData.isBooks=true; core.add(books);
     const step=nF>1?Math.min(bw+0.3,(inW-bw)/(nF-1)):0, totW=bw+(nF-1)*step; /* facings imposés : légèrement chevauchés si le bac est trop étroit */
     for(let f=0;f<nF;f++){const x0=-totW/2+f*step; for(let i=0;i<per;i++){const z1=zF-t-0.05-i*bt-f*0.02, mats=K.bookFace(f+i*nF,bw,bh);
-      if(P.saddle){ /* dos piqué métal : dos arrondi (pli) + 2 agrafes, pas de dos carré */
-        const rr=(bt-0.04)/2, zc=z1-rr; K.box(books,x0+rr,x0+bw,t+0.02,t+bh,z1-bt+0.04,z1,mats.map((m,j)=>j===1?mats[0]:m),null);
-        const cyl=new THREE.Mesh(new THREE.CylinderGeometry(rr,rr,bh-0.02,14,1,false,Math.PI,Math.PI),mats[5]); cyl.position.set(x0+rr,t+0.02+bh/2,zc); books.add(cyl);
-        [0.25,0.75].forEach(k=>{const st=new THREE.Mesh(new THREE.BoxGeometry(0.06,1.2,0.12),new THREE.MeshPhongMaterial({color:0xC9CCD0,shininess:80})); st.position.set(x0-0.005,t+bh*k,zc); books.add(st);});
+      if(P.saddle){ /* dos piqué métal : section en goutte (dos plié arrondi, gouttière qui s'amincit), 2 agrafes */
+        const T=bt-0.04, rr=T/2, zb=z1-T, sh=new THREE.Shape();
+        sh.moveTo(x0+rr,-z1); sh.lineTo(x0+bw,-(z1-T*0.06)); sh.quadraticCurveTo(x0+bw-0.15,-(z1-T*0.45),x0+bw-0.3,-(zb+T*0.55));
+        sh.quadraticCurveTo(x0+bw*0.55,-zb-T*0.05,x0+rr,-zb); sh.absarc(x0+rr,-(z1-rr),rr,Math.PI/2,Math.PI*1.5,false);
+        const eg=new THREE.ExtrudeGeometry(sh,{depth:bh-0.02,bevelEnabled:false,curveSegments:10}); K._pap=K._pap||new THREE.MeshLambertMaterial({color:0xF4F1EA}); const bm=new THREE.Mesh(eg,[K._pap,mats[5]]); bm.rotation.x=-Math.PI/2; bm.position.y=t+0.02; books.add(bm);
+        const fp=new THREE.Mesh(new THREE.PlaneGeometry(bw-rr,bh-0.02),mats[4]); fp.position.set(x0+rr+(bw-rr)/2,t+0.02+bh/2,z1+0.01); books.add(fp);
+        [0.25,0.75].forEach(k=>{const st=new THREE.Mesh(new THREE.BoxGeometry(0.06,1.2,0.12),new THREE.MeshPhongMaterial({color:0xC9CCD0,shininess:80})); st.position.set(x0-0.005,t+bh*k,z1-rr); books.add(st);});
       } else K.box(books,x0,x0+bw,t+0.02,t+bh,z1-bt+0.04,z1,mats,null);}}
     const total=per*nF, sz=Math.max(1.4,H/24), o=sz*1.6;
     const dims=new THREE.Group(); dims.userData.isDims=true; dims.visible=G.showDims; core.add(dims);
@@ -3135,7 +3155,7 @@ let root=null, R=null;
 function build(){
   if(root){scene.remove(root); disposeTree(root);}
   root=new THREE.Group(); scene.add(root);
-  R=MODELS[ST.type].build(curP(),G,K,curV());
+  R=(typeof CMP!=='undefined'&&CMP.on&&CMP.items.length)?buildCompare():MODELS[ST.type].build(curP(),G,K,curV());
   root.add(R.core);
   const b=R.bounds, cxm=(b.x0+b.x1)/2, czm=(b.z0+b.z1)/2, sz=Math.max(1.6,b.Htot/40);
   if(G.showHand){
@@ -3187,7 +3207,7 @@ function renderSummary(){
   chEl.innerHTML=R.kv.map(([k,v,wide],i)=>`<div class="chip${wide?' wide':''}" style="--c:var(--${CC[i%CC.length]})"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('')+(R.kv.length>4?`<button type="button" class="chipmore">${G._chipsOpen?'Moins':'+ '+(R.kv.length-4)+' chiffres'}</button>`:'');
   const cm=chEl.querySelector('.chipmore'); if(cm) cm.addEventListener('click',()=>{G._chipsOpen=!G._chipsOpen; renderSummary();});
   const al=R.alerts.slice();
-  if(!MODELS[ST.type].floor&&G.counterH+R.bounds.Htot>165) al.push(`Posé sur un comptoir de ${G.counterH} cm, le sommet est à ${fmt(G.counterH+R.bounds.Htot)} cm du sol, au-dessus de la hauteur des yeux (~160 cm).`);
+  if(!(CMP&&CMP.on)&&!MODELS[ST.type].floor&&G.counterH+R.bounds.Htot>165) al.push(`Posé sur un comptoir de ${G.counterH} cm, le sommet est à ${fmt(G.counterH+R.bounds.Htot)} cm du sol, au-dessus de la hauteur des yeux (~160 cm).`);
   const alEl=document.getElementById('alerts'); alEl.classList.toggle('fold',!G._alOpen);
   alEl.innerHTML=al.length?al.map(a=>`<div class="alert">${a}</div>`).join('')+(al.length>1?`<button type="button" class="more">${G._alOpen?'Réduire':'+ '+(al.length-1)+' autre'+(al.length>2?'s':'')+' alerte'+(al.length>2?'s':'')}</button>`:''):'<div class="okmsg">Aucun conflit détecté</div>';
   const mb=alEl.querySelector('.more'); if(mb) mb.addEventListener('click',()=>{G._alOpen=!G._alOpen; renderSummary();});
@@ -3676,6 +3696,52 @@ document.getElementById('svImport').addEventListener('change',async e=>{
     curSave=null; svSync(); buildPanel(); changed(true); svMsg.textContent=`« ${d.name||f.name} » importée${[Array.isArray(d.decals)&&d.decals.length?d.decals.length+' logo(s)':'',Array.isArray(d.covers)&&d.covers.length?d.covers.length+' couverture(s)':''].filter(Boolean).join(' et ').replace(/^/,' avec ').replace(/^ avec $/,'')}. Enregistre-la pour la garder.`;}
   catch(err){svMsg.textContent='Fichier non reconnu.';}
 });
+/* =================== Comparaison : plusieurs simulations côte à côte =================== */
+var CMP={on:false,items:[]}; // items : [{id,name,d,V}]
+async function cmpLoad(id){const d=(await svList()).find(x=>x.id===id); if(!d||!MODELS[d.type]) return null; regMats(d); const imgs=await svImgs(d);
+  const V={covers:[]}; Object.entries(d.V||{}).forEach(([k,v])=>{
+    if(k==='covers') V.covers=(v||[]).filter(c=>imgs[c.id]).map(c=>Object.assign({},c,{url:imgs[c.id]}));
+    else if(k==='decals') V.decals=(v||[]).filter(c=>imgs[c.id]).map(c=>Object.assign({},c,{url:imgs[c.id]}));
+    else if(v&&typeof v==='object'&&v.id){if(imgs[v.id]) V[k]=Object.assign({},v,{url:imgs[v.id]});} else if(k!=='_owner') V[k]=v;});
+  return {id,name:d.name||'Sans nom',d,V,P:migP(d.type,Object.assign({},MODELS[d.type].defaults,d.P||{}))};}
+function buildCompare(){
+  const grp=new THREE.Group(), keepT=ST.type, keepD=G.showDims, gap=25; let x=0, H=0, z0=0, z1=0, first=null;
+  G.showDims=false;
+  CMP.items.forEach(it=>{const t=it.d.type, keepV=VIS[t]; ST.type=t; VIS[t]=it.V;
+    let r; try{r=MODELS[t].build(it.P,G,K,it.V);}catch(e){console.warn(e); VIS[t]=keepV; return;}
+    VIS[t]=keepV; const b=r.bounds, w=b.x1-b.x0;
+    r.core.position.x=x-b.x0; r.core.position.y=-b.yBase; grp.add(r.core);
+    const l=label(it.name,Math.max(2,b.Htot/22)); l.position.set(x+w/2,b.Htot-b.yBase+Math.max(4,b.Htot/12)+(grp.children.length%4===3?Math.max(6,b.Htot/10):0),(b.z0+b.z1)/2); grp.add(l);
+    x+=w+gap; H=Math.max(H,b.Htot-b.yBase); z0=Math.min(z0,b.z0); z1=Math.max(z1,b.z1); if(!first) first=r;});
+  ST.type=keepT; G.showDims=keepD;
+  const W=Math.max(1,x-gap); grp.position.x=-W/2;
+  return {core:grp,bounds:{x0:-W/2,x1:W/2,z0,z1,yBase:0,Htot:H},pad:{right:12,left:12,front:8},
+    kv:[['Comparaison',`${CMP.items.length} PLV`,true],['Largeur totale',`${fmt(W)} cm`]],measures:[],alerts:[],fill:null};}
+const cmpOv=document.getElementById('cmpOverlay'), cmpList=document.getElementById('cmpList'), cmpExit=document.getElementById('cmpExit');
+let cmpSel=[]; // ordre choisi (ids)
+async function cmpRender(){let L=[]; try{L=await svList();}catch(e){} L.sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
+  const byId=Object.fromEntries(L.map(d=>[d.id,d])); cmpSel=cmpSel.filter(id=>byId[id]);
+  const rows=cmpSel.map(id=>byId[id]).concat(L.filter(d=>!cmpSel.includes(d.id)));
+  cmpList.innerHTML=''; if(!rows.length){cmpList.innerHTML='<p class="svempty">Aucune simulation enregistrée.</p>'; return;}
+  rows.forEach(d=>{const on=cmpSel.includes(d.id), li=document.createElement('div'); li.className='cmprow'+(on?' on':'');
+    const i=d.info||{}; li.innerHTML=`<label><input type="checkbox" ${on?'checked':''}> <span class="nm"></span><small></small></label>${on?'<span class="ord"><button type="button" data-m="-1" title="Vers la gauche">◀</button><b>'+(cmpSel.indexOf(d.id)+1)+'</b><button type="button" data-m="1" title="Vers la droite">▶</button></span>':''}`;
+    li.querySelector('.nm').textContent=d.name||'Sans nom'; li.querySelector('small').textContent=' · '+[i.editeur,(MODELS[d.type]||{}).label].filter(Boolean).join(' · ');
+    li.querySelector('input').addEventListener('change',e=>{if(e.target.checked) cmpSel.push(d.id); else cmpSel=cmpSel.filter(x=>x!==d.id); cmpRender();});
+    li.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click',()=>{const k=cmpSel.indexOf(d.id), n=k+(+b.dataset.m); if(n<0||n>=cmpSel.length) return; [cmpSel[k],cmpSel[n]]=[cmpSel[n],cmpSel[k]]; cmpRender();}));
+    cmpList.appendChild(li);});
+  document.getElementById('cmpCount').textContent=cmpSel.length?`${cmpSel.length} sélectionnée${cmpSel.length>1?'s':''}`:'';}
+async function cmpShow(){if(!cmpSel.length) return; const msg=document.getElementById('cmpMsg'); msg.textContent='Chargement…';
+  const items=[]; for(const id of cmpSel){const it=await cmpLoad(id); if(it) items.push(it);}
+  CMP={on:true,items}; msg.textContent=''; cmpOv.hidden=true; cmpExit.hidden=false; document.getElementById('cmpBtn').classList.add('on'); changed(true); setTimeout(()=>goView('face'),60);}
+function cmpQuit(){CMP={on:false,items:[]}; cmpExit.hidden=true; document.getElementById('cmpBtn').classList.remove('on'); changed(true);}
+document.getElementById('cmpBtn').addEventListener('click',()=>{cmpOv.hidden=false; if(!cmpSel.length&&CMP.items.length) cmpSel=CMP.items.map(i=>i.id); cmpRender();});
+document.getElementById('cmpClose').addEventListener('click',()=>{cmpOv.hidden=true;});
+cmpOv.addEventListener('click',e=>{if(e.target===cmpOv) cmpOv.hidden=true;});
+document.getElementById('cmpAll').addEventListener('click',async()=>{const L=await svList(); cmpSel=L.sort((a,b)=>(b.updated||'').localeCompare(a.updated||'')).map(d=>d.id); cmpRender();});
+document.getElementById('cmpNone').addEventListener('click',()=>{cmpSel=[]; cmpRender();});
+document.getElementById('cmpGo').addEventListener('click',cmpShow);
+cmpExit.addEventListener('click',cmpQuit);
+
 /* ---- Sélecteur de simulations (barre d'outils) ---- */
 const simSel=document.getElementById('simSel'); let simList=[];
 function simSelSync(){const v=curSave?curSave.id:''; if(simSel.value!==v) simSel.value=[...simSel.options].some(o=>o.value===v)?v:'';}
