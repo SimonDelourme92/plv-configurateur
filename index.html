@@ -1846,9 +1846,20 @@ MODELS['colonne-jade-4']={
     // panneau découpé : extrusion (sg -1 = côté gauche, +1 = droit) + visuel collé sur la face extérieure
     /* Microbis couché 1 face : face imprimée lisse et satinée (couché), autre face blanche brute et mate, chant cannelé */
     // blancs légèrement froids pour compenser l'éclairage chaud de la scène : rendu « blanc blanc »
-    const KRAFT=/kraft/.test(P.mat_struct||''); const BRUT=new THREE.MeshLambertMaterial({color:KRAFT?0xA88660:0xE3E5E7}), BRUTW=new THREE.MeshLambertMaterial({color:0xE3E5E7}), coatC=new Map();
+    const KRAFT=/kraft/.test(P.mat_struct||'');
+    /* texture kraft : fond beige, fibres, mouchetures, cannelure visible en fines lignes (dessinée, sans image) */
+    const kraftTex=K._kraft||(K._kraft=(()=>{const c=document.createElement('canvas'); c.width=c.height=512; const x=c.getContext('2d');
+      x.fillStyle='#B89D7B'; x.fillRect(0,0,512,512);
+      for(let i=0;i<9000;i++){const v=Math.random(); x.fillStyle=v<.5?`rgba(110,80,45,${.12+Math.random()*.2})`:`rgba(230,210,175,${.12+Math.random()*.2})`; const a=Math.random()*Math.PI, l=2+Math.random()*9; x.save(); x.translate(Math.random()*512,Math.random()*512); x.rotate(a); x.fillRect(0,0,l,.8); x.restore();}
+      for(let i=0;i<1600;i++){x.fillStyle=`rgba(${Math.random()<.5?'80,55,30':'240,225,195'},${.15+Math.random()*.3})`; x.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*1.5,1+Math.random()*1.5);}
+      for(let y=0;y<512;y+=6){x.fillStyle='rgba(110,85,55,0.12)'; x.fillRect(0,y,512,2);} 
+      const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(3,10); t.anisotropy=8; return t;})());
+    const kraftW=K._kraftW||(K._kraftW=(()=>{const t=kraftTex.clone(); t.needsUpdate=true; t.repeat.set(1/30,1/30); return t;})());
+    const kraftMat=(dark,world)=>new THREE.MeshLambertMaterial({map:world?kraftW:kraftTex,color:dark?0xE6DCCC:0xFFFFFF});
+    const BRUTX=KRAFT?kraftMat(true,true):null;
+    const BRUT=KRAFT?kraftMat(true):new THREE.MeshLambertMaterial({color:0xE3E5E7}), BRUTW=new THREE.MeshLambertMaterial({color:0xE3E5E7}), coatC=new Map();
     const brut=M=>(M&&M.top&&M.top.color&&M.top.color.getHex()===0xB39472)?BRUT:(KRAFT&&M&&M.top&&M.top.color?BRUTW:BRUT); /* verso kraft seulement pour les pièces en kraft */
-    const coat=M=>{if(!coatC.has(M)){let c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; if(c===0xF6F5F1) c=0xEEF1F5;
+    const coat=M=>{if(!coatC.has(M)&&M&&M.top&&M.top.color&&M.top.color.getHex()===0xB39472){coatC.set(M,kraftMat(false));} if(!coatC.has(M)){let c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; if(c===0xF6F5F1) c=0xEEF1F5;
       coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:(KRAFT||c===0xEEEEE9)?0x0a0a0a:0x262626,shininess:(KRAFT||c===0xEEEEE9)?6:42,map:M.top&&M.top.map||null}));} return coatC.get(M);};
     // chant : coupe de microbis EE (couché blanc / cannelure E / papier milieu / cannelure E / blanc brut), texture dessinée ici, sans image
     const chantTex=(()=>{const c=document.createElement('canvas'); c.width=128; c.height=64; const x=c.getContext('2d'), H=64;
@@ -1869,7 +1880,7 @@ MODELS['colonne-jade-4']={
     const dbl=(M,dims)=>{const a=mb(M,2,null,dims); a[3]=coat(M); return a;}; // tablette pliée en 2 : couché dessus et dessous
     const cut=(g,sh,depth,xIn,sg,M,im,D,Hh,inner)=>{
       const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false,curveSegments:16});
-      const m=new THREE.Mesh(geo,[BRUT,CHANT]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
+      const m=new THREE.Mesh(geo,[BRUTX||BRUT,CHANT]); m.rotation.y=sg*Math.PI/2; m.position.x=xIn; g.add(m);
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),M.edge); e.rotation.copy(m.rotation); e.position.copy(m.position); g.add(e);
       {const pg=new THREE.ShapeGeometry(sh,16), pos=pg.attributes.position, uv=pg.attributes.uv;
         for(let i=0;i<pos.count;i++){const x=pos.getX(i); uv.setXY(i,sg<0?(x+D)/D:x/D,pos.getY(i)/Hh);} uv.needsUpdate=true;
