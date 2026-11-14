@@ -1814,7 +1814,7 @@ MODELS['colonne-jade-4']={
     book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-blanc',mat_fronton:'mb-blanc',mat_socle:'mb-blanc'},
   parts:[{key:'struct',label:'Corps : joues, dos, tablettes',short:'corps',use:'panel'},{key:'fronton',label:'Fronton',short:'fronton',use:'panel'},{key:'socle',label:'Socle',short:'socle',use:'panel'}],
   slots:[{key:'fronton',label:'Fronton',sub:'face avant',short:'fronton'},{key:'frontonC',label:'Côtés du fronton',sub:'les deux joues galbées',short:'côtés fronton'},
-    {key:'joues',label:'Joues',sub:'les deux côtés du corps',short:'joues'},{key:'socle',label:'Socle',sub:'face avant sous la 1re tablette',short:'socle'}],
+    {key:'joues',label:'Joue gauche',sub:'côté gauche vu de face (sert aussi à droite si vide)',short:'joue gauche'},{key:'jouesD',label:'Joue droite',sub:'côté droit vu de face, facultatif',short:'joue droite'},{key:'socle',label:'Socle',sub:'face avant sous la 1re tablette',short:'socle'}],
   structure(ui){
     const n=document.createElement('p'); n.className='note'; n.style.margin='0 2px 8px'; n.textContent='Cotes par défaut = tracés Jade PLV J 3557 (microbis). Le corps penche vers l\'arrière : hauteurs mesurées le long de la façade, profondeurs perpendiculaires à la façade.'; panel.appendChild(n);
     ui.group('Corps',[F_('W','Largeur intérieure',10,40,0.1,'cm','Entre les joues. Le hors-tout ajoute 2 joues double paroi.'),F_('t','Épaisseur du microbis',2,8,0.5,'mm','Joues et tablettes en double épaisseur (pliées).'),
@@ -1870,10 +1870,10 @@ MODELS['colonne-jade-4']={
         if(inner){const ci=coat(M).clone(); ci.side=THREE.BackSide; const pi=new THREE.Mesh(new THREE.ShapeGeometry(inner),ci); pi.rotation.y=pm.rotation.y; pi.position.x=xIn-sg*0.02; g.add(pi);}}
     };
     // joues : arête avant (pli) = axe s, bas et haut horizontaux une fois le corps incliné
-    const Ytop=Hs+Dt*tn, jim=K.img(V.joues,Db,Ytop);
+    const Ytop=Hs+Dt*tn, jim=K.img(V.joues,Db,Ytop), jimD=V.jouesD?K.img(V.jouesD,Db,Ytop):jim;
     [-1,1].forEach(sg=>{const pts=[[0,0],[sg*Db,Db*tn],[sg*Dt,Ytop],[0,Hs]];
       K.box(body,sg<0?-Wo/2:Wo/2-t2,sg<0?-Wo/2+t2:Wo/2,0,Hs,0,0.03,coat(MS),null); /* arête avant = pli */
-      cut(body,shape(pts),t2,sg*(Wo/2-t2),sg,MS,jim,Db,Ytop,shape([[0,0],[sg*Dc,Dc*tn],[sg*Dc,Hs+Dc*tn],[0,Hs]])); /* doublure intérieure (pli à 180°) : couché côté cases */ addM(area(pts)*t2*MS.rho,Hs/2,-(Db+Dt)/4);});
+      cut(body,shape(pts),t2,sg*(Wo/2-t2),sg,MS,sg<0?jim:jimD,Db,Ytop,shape([[0,0],[sg*Dc,Dc*tn],[sg*Dc,Hs+Dc*tn],[0,Hs]])); /* doublure intérieure (pli à 180°) : couché côté cases */ addM(area(pts)*t2*MS.rho,Hs/2,-(Db+Dt)/4);});
     // dos des cases, parallèle à la façade
     K.box(body,-W/2,W/2,Dc*tn,Hs+Dc*tn,-Dc-t,-Dc,fold(mb(MS,4,null,[W,Hs,t]),MS,[0,1]),MS.edge); /* dos : plié sur les rabats latéraux */ addM(W*Hs*t*MS.rho,Hs/2,-Dc);
     // socle imprimé
@@ -1939,7 +1939,7 @@ MODELS['colonne-jade-4']={
     if(back<8) al.push(`Bascule arrière dès ${Math.round(back)}° : corps trop penché, réduire l'inclinaison.`);
     if(fwd<8) al.push(`Bascule avant dès ${Math.round(fwd)}° : prévoir un lest dans le socle.`);
     return {core,fill:{per,cap,facings:nC*nF,total,unit:'case',units:'Cases'},
-      slotSizes:{fronton:[Wo,hH],frontonC:[hD,hH],joues:[Db,Ytop],socle:[Wo,plH],covers:[bw,bh]},
+      slotSizes:{fronton:[Wo,hH],frontonC:[hD,hH],joues:[Db,Ytop],jouesD:[Db,Ytop],socle:[Wo,plH],covers:[bw,bh]},
       bounds:{x0:-shW/2,x1:shW/2,z0,z1,yBase:0,Htot},pad:{right:o+sz*6+6,left:o+sz*3+6,front:o+4},
       kv:[['Hors-tout L × P × H',`${fmt(shW)} × ${fmt(z1-z0)} × ${fmt(Htot)}`,true],['Cases',`${nC}${nF>1?` <small>${nF} facings</small>`:''}`],['Livres / case',`${per*nF} <small>max ${cap*nF}</small>`],
         ['Volumes',`${total}`],['Corps au sol',`${fmt(Wo)} × ${fmt(Dfoot)} cm`],['Poids chargé',`${fmt(mt/1000)} kg`],['Bascule arr./av.',`${Math.round(back)}° / ${Math.round(fwd)}°`]],
