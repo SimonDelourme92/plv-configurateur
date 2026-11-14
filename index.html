@@ -1011,7 +1011,7 @@ const FLUTE_BY=Object.fromEntries(FLUTES.map(f=>[f[0],{id:f[0],label:f[1],t:f[2]
 MODELS['comptoir-carton']={
   cat:'comptoir', label:'Comptoir carton', desc:'Bac carton ondulé, joues inclinées, dos-fronton', orient:true, fams:['Carton ondulé'],
   defaults:{W:30,Dp:20,N:1,stepH:8,Hf:8,Hs:18,Hb:42,backR:2,F:1,divH:6,sepOn:false,sepMode:'equal',sepPos:[],t:4.5,
-    book:'poche',bw:110,bh:178,bt:18,orient:'face',auto:true,qty:6,mat_caisson:'cn-EB',mat_dos:'cn-EB',mat_sep:'cn-EB'},
+    book:'poche',bw:110,bh:178,bt:18,orient:'face',auto:true,qty:6,mat_caisson:'cn-EB',mat_dos:'cn-EB',mat_sep:'cn-EB',dosVerso:'idem'},
   parts:[{key:'caisson',label:'Bac : fonds, façades, joues',short:'bac',use:'panel'},{key:'dos',label:'Dos-fronton',short:'dos',use:'panel'}],
   slots:[{key:'fronton',label:'Dos-fronton',sub:'face avant du dos',short:'fronton'},{key:'trottoir',label:'Façade',sub:'avant du bac',short:'façade'},{key:'joues',label:'Joues',sub:'les deux côtés',short:'joues'}],
   structure(ui){
@@ -1022,6 +1022,7 @@ MODELS['comptoir-carton']={
     ui.group('Étages',[F_('N','Nombre d\'étages',1,6,1,'','Gradins : chaque étage a son fond et sa façade.'),F_('stepH','Élévation entre étages',0,40,0.5,'cm','Hauteur de marche d\'un étage au suivant.')]);
     ui.group('Hauteurs',[F_('Hf','Façade de chaque étage',2,40,0.5,'cm','Depuis le dessus du fond de l\'étage.'),F_('Hs','Joues à l\'arrière',2,80,0.5,'cm','Les joues montent en pente de la façade jusqu\'à cette hauteur contre le dos.'),
       F_('Hb','Dos-fronton',5,150,0.5,'cm','Hauteur totale du dos depuis le dessus du fond du bas, fronton compris.'),F_('backR','Arrondi des coins du fronton',0,15,0.5,'cm','0 = angles droits.')]);
+    const vg=ui.group('Dos : face arrière',[]); ui.choice(vg,'dosVerso',[['idem','Comme le carton'],['kraft','Kraft brut, non imprimé']]);
   },
   specs:P=>{const f=FLUTE_BY[(CAT_BY[P.mat_caisson]||{}).flute]||FLUTE_BY.EB, t=f.t/10, N=Math.max(1,P.N|0);
     return [['Cannelure',`${f.label} (${fmt(f.t)} mm)`],['Intérieur L × P',`${fmt(P.W)} × ${fmt(P.Dp)} cm`],['Étages',N>1?`${N}, marche ${fmt(P.stepH)} cm`:'1'],['Hors-tout L × P',`${fmt(P.W+2*t)} × ${fmt(N*P.Dp+(N+2)*t)} cm`],
@@ -1061,7 +1062,10 @@ MODELS['comptoir-carton']={
       sp.lineTo(r,y1); if(r>0.05) sp.quadraticCurveTo(0,y1,0,y1-r); else sp.lineTo(0,y1); sp.lineTo(0,-t);
       const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:16}); let mats=K.woodExtrude(geo,t,MD);
       const fm=K.img(V.fronton,W,Hb+t);
-      if(fm){const uv=geo.attributes.uv,pos=geo.attributes.position,g0=geo.groups[0]; for(let k=g0.start;k<g0.start+g0.count;k++) uv.setXY(k,pos.getX(k)/W,(pos.getY(k)+t)/(Hb+t)); uv.needsUpdate=true; mats=[fm,mats[1]];}
+      { const g0=geo.groups[0], half=g0.count/2, KB=P.dosVerso==='kraft';
+        if(fm){const uv=geo.attributes.uv,pos=geo.attributes.position; for(let k=g0.start+(KB?half:0);k<g0.start+g0.count;k++) uv.setXY(k,pos.getX(k)/W,(pos.getY(k)+t)/(Hb+t)); uv.needsUpdate=true;}
+        if(KB){const gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,half,2); geo.addGroup(g0.start+half,half,0); geo.addGroup(gS.start,gS.count,1); mats=[fm||mats[0],mats[1],kraftBrut()];} /* z=0 : face arrière */
+        else if(fm) mats=[fm,mats[1]]; }
       const m=new THREE.Mesh(geo,mats); m.position.z=-Dtot; core.add(m);
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),MD.edge); e.position.copy(m.position); core.add(e);
       parts.push({m:W*(Hb+t)*t*MD.rho,y:Hb/2,d:dB+t/2});}
@@ -3201,6 +3205,9 @@ const MB_BRUT_C=(()=>{const c=document.createElement('canvas'); c.width=c.height
   for(let y=0;y<512;y+=6){x.fillStyle='rgba(110,112,115,0.08)'; x.fillRect(0,y,512,2); x.fillStyle='rgba(255,255,255,0.2)'; x.fillRect(0,y+3,512,1);}
   return c;})();
 const mbBrutCache={};
+let kraftBrutCache=null; /* kraft brut (verso non imprimé) : stries du microbis teintées brun, UV en cm */
+function kraftBrut(){if(!kraftBrutCache){const c=document.createElement('canvas'); c.width=MB_BRUT_C.width; c.height=MB_BRUT_C.height; const x=c.getContext('2d'); x.drawImage(MB_BRUT_C,0,0); x.globalCompositeOperation='multiply'; x.fillStyle='#B48E64'; x.fillRect(0,0,c.width,c.height);
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; t.repeat.set(1/30,1/30); kraftBrutCache=new THREE.MeshLambertMaterial({map:t,color:0xFFFFFF});} return kraftBrutCache;}
 function mbBrut(w,h,side){const k=w?(Math.round(w*2)/2)+'x'+(Math.round(h*2)/2):'world'; const key=k+(side||'');
   if(!mbBrutCache[key]){const t=new THREE.CanvasTexture(MB_BRUT_C); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; if(w) t.repeat.set(Math.max(w,1)/30,Math.max(h,1)/30); else t.repeat.set(1/30,1/30);
     mbBrutCache[key]=new THREE.MeshLambertMaterial({map:t,color:0xFFFFFF,...(side?{side}:{})});}
