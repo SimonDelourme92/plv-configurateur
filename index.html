@@ -1890,7 +1890,7 @@ MODELS['colonne-jade-4']={
     // joues : arête avant (pli) = axe s, bas et haut horizontaux une fois le corps incliné
     const Ytop=Hs+Dt*tn, jim=K.img(V.joues,Db,Ytop), jimD=V.jouesD?K.img(V.jouesD,Db,Ytop):jim;
     [-1,1].forEach(sg=>{const pts=[[0,0],[sg*Db,Db*tn],[sg*Dt,Ytop],[0,Hs]];
-      K.box(body,sg<0?-Wo/2:Wo/2-t2,sg<0?-Wo/2+t2:Wo/2,0,Hs,0,0.03,coat(MS),null); /* arête avant = pli */
+      K.box(body,sg<0?-Wo/2-0.08:Wo/2-t2-0.08,sg<0?-Wo/2+t2+0.08:Wo/2+0.08,0,Hs,0,0.04,coat(MS),null); /* arête avant = pli */
       cut(body,shape(pts),t2,sg*(Wo/2-t2),sg,MS,sg<0?jim:jimD,Db,Ytop,shape([[0,0],[sg*Dc,Dc*tn],[sg*Dc,Hs+Dc*tn],[0,Hs]])); /* doublure intérieure (pli à 180°) : couché côté cases */ addM(area(pts)*t2*MS.rho,Hs/2,-(Db+Dt)/4);});
     (P.rivets||[]).forEach(([d,s0])=>[-1,1].forEach(sg=>{const r=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,0.25,20),new THREE.MeshPhongMaterial({color:0xf2f2f0,shininess:60})); r.rotation.z=Math.PI/2; r.position.set(sg*(Wo/2+0.12),s0,-d); body.add(r);})); /* rivets plastiques */
     // dos des cases, parallèle à la façade
@@ -1901,7 +1901,8 @@ MODELS['colonne-jade-4']={
     // tablettes + livres
     const bw=P.bw/10, bh=P.bh/10, bt=P.bt/10, wideD=Math.min(shD,shO+7.5);
     const nF=Math.max(1,Math.floor((W-0.2+0.3)/(bw+0.3)+1e-6)), clashW=bw>W-0.2+1e-6;
-    const cap=Math.max(0,Math.floor((shD-t-lipT-0.2)/bt+1e-6)), per=P.auto?cap:Math.min(P.qty|0,cap);
+    const zB0=Math.min(shO-lipT-0.05,bt*1.1); /* environ 1 livre dépasse de la façade */
+    const cap=Math.max(0,Math.floor((zB0+Dc-0.2)/bt+1e-6)), per=P.auto?cap:Math.min(P.qty|0,cap);
     const books=new THREE.Group(); books.visible=G.showBooks; books.userData.isBooks=true; body.add(books);
     let nC=0, clearMin=1e9;
     for(let k=0;k<N;k++){
@@ -1925,9 +1926,9 @@ MODELS['colonne-jade-4']={
       addM((shW*wideD+W*(shD-wideD)+6.8*tabL)*t2*MS.rho+60*t*MS.rho,s0,shO-shD/2);
       const clash=clashW||bh>clear+1e-6, totW=nF*bw+(nF-1)*0.3, ya=s0+t2;
       for(let f=0;f<nF;f++){const x0=-totW/2+f*(bw+0.3);
-        for(let i=0;i<per;i++){const z1=shO-lipT-0.05-i*bt, z0=z1-bt+0.04;
+        for(let i=0;i<per;i++){const z1=zB0-i*bt, z0=z1-bt+0.04;
           K.box(books,x0,x0+bw,ya+0.02,ya+bh,z0,z1,clash?K.mat.clash:K.bookFace(i+k*3+f*7,bw,bh),per*nF*N<=300?K.mat.bookEdge:null);}}
-      if(per>0) addM(bw*bh*bt*per*nF*0.75,ya+bh/2,shO-lipT-per*bt/2);
+      if(per>0) addM(bw*bh*bt*per*nF*0.75,ya+bh/2,zB0-per*bt/2);
       nC++;
     }
     // fronton 3 faces, posé sur le dessus (bas horizontal), face avant à l'aplomb de l'arête avant
