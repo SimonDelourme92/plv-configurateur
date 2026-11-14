@@ -662,6 +662,8 @@ const CAT=[
   {id:'laiton',name:'Laiton',fam:'Composite et métal',top:0xC9A75A,side:0xC9A75A,edge:0x7A6230,rho:8.5,metal:true,shine:90,tags:'dore fil tige',use:'rod'}
 ];
 const CAT_BY=Object.fromEntries(CAT.map(m=>[m.id,m]));
+/* Matériaux embarqués dans un JSON importé : ajoutés au catalogue s'ils manquent, pour que la PLV importée garde exactement ses matières */
+function regMats(d){Object.entries((d&&d.materiaux)||{}).forEach(([id,m])=>{if(!CAT_BY[id]&&m&&typeof m==='object'){const x=Object.assign({},m,{id}); CAT.push(x); CAT_BY[id]=x;}});}
 /* bois retirés du catalogue : les anciens réglages retombent sur le contreplaqué bouleau */
 const WOOD_GONE=['cp-peuplier','mdf-blanc','mdf-noir','mela-blanc','mela-chene','chene','hetre','pin','bambou'];
 WOOD_GONE.forEach(id=>{CAT_BY[id]=CAT_BY['cp-bouleau'];});
@@ -3408,7 +3410,7 @@ function visMeta(V){const m={}; Object.entries(V).forEach(([k,v])=>{if(k==='deca
 async function svWrite(id,name){
   const V=curV(), now=new Date().toISOString(), old=id?(await svList()).find(x=>x.id===id):null;
   const info=Object.assign({},(old&&old.info)||{},svInfo||{}); svInfo=null;
-  const doc={name,info,type:ST.type,P:JSON.parse(JSON.stringify(curP())),G:JSON.parse(JSON.stringify(G)),V:visMeta(V),thumb:snapThumb(),created:old?old.created:now,updated:now};
+  const doc={name,info,type:ST.type,materiaux:Object.fromEntries(Object.entries(curP()).filter(([k,v])=>k.startsWith('mat_')&&CAT_BY[v]).map(([k,v])=>[v,CAT_BY[v]])),P:JSON.parse(JSON.stringify(curP())),G:JSON.parse(JSON.stringify(G)),V:visMeta(V),thumb:snapThumb(),created:old?old.created:now,updated:now};
   id=id||('s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
   const imgs=visImages(V); let lost=0;
   if(SV.mode==='db'){
@@ -3428,7 +3430,7 @@ async function svOpen(id){
   const d=(await svList()).find(x=>x.id===id); if(!d) return;
   let imgs={};
   if(SV.mode==='db'){const q=await SV.db.collection('data/users/'+SV.uid+'/'+id+'/img').get(); q.docs.forEach(x=>imgs[x.id]=x.data().url);} else imgs=await svLocalImgs(id,d);
-  if(!MODELS[d.type]) return;
+  if(!MODELS[d.type]) return; regMats(d);
   ST.type=d.type; const c=MODELS[d.type].cat; ST.sub=ST.sub||{}; ST.sub[c]=d.type;
   ST.P[d.type]=Object.assign({},MODELS[d.type].defaults,d.P||{}); Object.assign(G,d.G||{});
   const V={covers:[]}; Object.entries(d.V||{}).forEach(([k,v])=>{
@@ -3539,7 +3541,8 @@ quickBtn.addEventListener('click',async()=>{if(!curSave) return; quickBtn.disabl
 /* Export / import JSON d'une simulation (réglages + cotes, sans les images) */
 function simJSON(){
   const V=curV(), name=curSave?curSave.name:'';
-  return JSON.stringify({format:'plvconf-simulation',version:1,exported:new Date().toISOString(),name,info:Object.assign({},(curSave&&curSave.info)||pendInfo||{},{creee:curSave&&curSave.info&&curSave.info.creee||undefined}),type:ST.type,model:MODELS[ST.type].label,
+  const P0=curP(), materiaux={}; Object.keys(P0).forEach(k=>{if(k.startsWith('mat_')&&CAT_BY[P0[k]]) materiaux[P0[k]]=CAT_BY[P0[k]];});
+  return JSON.stringify({format:'plvconf-simulation',version:1,exported:new Date().toISOString(),name,materiaux,info:Object.assign({},(curSave&&curSave.info)||pendInfo||{},{creee:curSave&&curSave.info&&curSave.info.creee||undefined}),type:ST.type,model:MODELS[ST.type].label,
     P:curP(),G:Object.fromEntries(Object.entries(G).filter(([k])=>!k.startsWith('_'))),V:visMeta(V),decals:(V.decals||[]).map(d=>Object.assign({},d)),covers:(V.covers||[]).map(d=>Object.assign({},d)),slots:Object.fromEntries(Object.entries(V).filter(([k,v])=>k!=='covers'&&k!=='decals'&&v&&typeof v==='object'&&v.url).map(([k,v])=>[k,Object.assign({},v)])),
     resume:R?R.kv.map(([k,v])=>[k,strip(v)]):[],cotes:R&&R.measures?R.measures:[],alertes:R?R.alerts:[]},null,2);
 }
@@ -3551,7 +3554,7 @@ document.getElementById('svExport').addEventListener('click',async()=>{
 });
 document.getElementById('svImport').addEventListener('change',async e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
-  try{const d=JSON.parse(await f.text()); if(d&&d.format==='plvconf-bundle'){await importBundle(d); return;} if(!d||d.format!=='plvconf-simulation'||!MODELS[d.type]) throw 0;
+  try{const d=JSON.parse(await f.text()); if(d&&d.format==='plvconf-bundle'){await importBundle(d); return;} regMats(d); if(!d||d.format!=='plvconf-simulation'||!MODELS[d.type]) throw 0;
     ST.type=d.type; ST.sub=ST.sub||{}; ST.sub[MODELS[d.type].cat]=d.type; ST.P[d.type]=Object.assign({},MODELS[d.type].defaults,d.P||{}); Object.assign(G,d.G||{});
     curSave=null; newDraft(d.type);
     if(Array.isArray(d.decals)){VIS[d.type]=VIS[d.type]||{covers:[]}; VIS[d.type].decals=d.decals.filter(x=>x&&x.url); saveVis();}
