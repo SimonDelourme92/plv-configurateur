@@ -3418,7 +3418,7 @@ async function importBundle(d){
   const have=new Set((await svList()).map(x=>x.name+'|'+x.updated)); let n=0, skip=0;
   for(const sv of d.saves||[]){if(!sv||!MODELS[sv.type]){skip++; continue;} if(have.has(sv.name+'|'+sv.updated)){skip++; continue;} svMsg.textContent=`Import… ${n+1} / ${(d.saves||[]).length}`; await svPut(sv,sv.imgs); n++;}
   const c=d.current; if(c&&c.P){Object.entries(c.P).forEach(([k,p])=>{if(MODELS[k]) ST.P[k]=Object.assign({},MODELS[k].defaults,p);}); if(c.G) Object.assign(G,c.G); if(c.sub) ST.sub=Object.assign(ST.sub||{},c.sub); if(MODELS[c.type]) ST.type=c.type;
-    Object.entries(c.VIS||{}).forEach(([k,v])=>{if(VIS[k]&&v){VIS[k]=Object.assign({covers:[]},v); if(!Array.isArray(VIS[k].covers)) VIS[k].covers=[];}}); saveVis();}
+    Object.entries(c.VIS||{}).forEach(([k,v])=>{if(VIS[k]&&v){VIS[k]=Object.assign({covers:[]},v,{_owner:'draft'}); if(!Array.isArray(VIS[k].covers)) VIS[k].covers=[];}}); saveVis();}
   curSave=null; svSync(); buildPanel(); changed(true); refreshSimSel(); svRender();
   svMsg.textContent=`Export complet importé : ${n} sauvegarde${n>1?'s':''} ajoutée${n>1?'s':''}${skip?` (${skip} déjà présente${skip>1?'s':''})`:''}, réglages de tous les modèles restaurés.`;
 }
