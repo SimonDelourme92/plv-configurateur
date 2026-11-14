@@ -673,6 +673,7 @@ const CAT=[
   {id:'carton-ecru',name:'Carton écru',fam:'Carton',top:0xE8DCC4,side:0xDCCDB0,edge:0x857659,rho:0.2,tags:'ondule',use:'panel'},
   {id:'carton-nid',name:"Carton nid d'abeille",fam:'Carton',top:0xEFE4CC,side:0xE2D3B4,edge:0x867859,rho:0.12,tags:'alveolaire',use:'panel'},
   {id:'carte-500',name:'Carte 500 g (compact)',fam:'Carton',top:0xF8F7F3,side:0xEFEDE6,edge:0x9A968C,rho:0.77,tags:'carton compact cartonnette carte',use:'panel'},
+  {id:'mb-ee',flute:'MB',thick:3,name:'Microbis EE blanc couché / écru · 3 mm',fam:'Carton ondulé',top:0xF6F5F1,side:0xEDEBE5,edge:0x8A8A84,rho:0.2,tags:'microbis micro cannelure ee blanc couche ecru fsc',use:'panel'},
   {id:'mb-blanc',thick:4,name:'Microbis couché 1 face blanc · 4 mm',fam:'Carton ondulé',top:0xF6F5F1,side:0xEDEBE5,edge:0x8A8A84,rho:0.2,tags:'microbis carton double micro cannelure jade',use:'panel'},
   {id:'mb-noir',thick:4,name:'Microbis couché 1 face, imprimé noir · 4 mm',fam:'Carton ondulé',top:0x1F1F22,side:0x1A1A1C,edge:0x6A6A6A,rho:0.2,tags:'microbis carton noir imprime',use:'panel'},
   {id:'mb-blanc-mat',thick:4,name:'Microbis blanc non couché (mat) · 4 mm',fam:'Carton ondulé',top:0xEEEEE9,side:0xE6E6E0,edge:0x8A8A84,rho:0.2,tags:'microbis carton blanc mat non couche',use:'panel'},
@@ -1006,7 +1007,7 @@ MODELS['comptoir-bois']={
 };
 
 /* ---------- Comptoir carton : même géométrie que le comptoir bois, assemblage simple, épaisseur donnée par la cannelure ---------- */
-const FLUTES=[['F','F · micro',0.8,1],['E','E · micro',1.5,1],['B','B · simple',3,1],['C','C · simple',4,1],['EB','EB · double',4.5,2],['BC','BC · double',7,2],['AAA','AAA · triple',15,3]];
+const FLUTES=[['F','F · micro',0.8,1],['E','E · micro',1.5,1],['B','B · simple',3,1],['C','C · simple',4,1],['EB','EB · double',4.5,2],['MB','microbis EE · double micro',3,2],['BC','BC · double',7,2],['AAA','AAA · triple',15,3]];
 const FLUTE_BY=Object.fromEntries(FLUTES.map(f=>[f[0],{id:f[0],label:f[1],t:f[2],walls:f[3]}]));
 MODELS['comptoir-carton']={
   cat:'comptoir', label:'Comptoir carton', desc:'Bac carton ondulé, joues inclinées, dos-fronton', orient:true, fams:['Carton ondulé'],
@@ -1022,7 +1023,7 @@ MODELS['comptoir-carton']={
     ui.group('Étages',[F_('N','Nombre d\'étages',1,6,1,'','Gradins : chaque étage a son fond et sa façade.'),F_('stepH','Élévation entre étages',0,40,0.5,'cm','Hauteur de marche d\'un étage au suivant.')]);
     ui.group('Hauteurs',[F_('Hf','Façade de chaque étage',2,40,0.5,'cm','Depuis le dessus du fond de l\'étage.'),F_('Hs','Joues à l\'arrière',2,80,0.5,'cm','Les joues montent en pente de la façade jusqu\'à cette hauteur contre le dos.'),
       F_('Hb','Dos-fronton',5,150,0.5,'cm','Hauteur totale du dos depuis le dessus du fond du bas, fronton compris.'),F_('backR','Arrondi des coins du fronton',0,15,0.5,'cm','0 = angles droits.')]);
-    const vg=ui.group('Dos : face arrière',[]); ui.choice(vg,'dosVerso',[['idem','Comme le carton'],['kraft','Kraft brut, non imprimé']]);
+    const vg=ui.group('Dos du fronton',[]); ui.choice(vg,'dosVerso',[['idem','Comme le carton'],['kraft','Fronton : dos en kraft brut (au-dessus du bac)']]);
   },
   specs:P=>{const f=FLUTE_BY[(CAT_BY[P.mat_caisson]||{}).flute]||FLUTE_BY.EB, t=f.t/10, N=Math.max(1,P.N|0);
     return [['Cannelure',`${f.label} (${fmt(f.t)} mm)`],['Intérieur L × P',`${fmt(P.W)} × ${fmt(P.Dp)} cm`],['Étages',N>1?`${N}, marche ${fmt(P.stepH)} cm`:'1'],['Hors-tout L × P',`${fmt(P.W+2*t)} × ${fmt(N*P.Dp+(N+2)*t)} cm`],
@@ -1063,8 +1064,14 @@ MODELS['comptoir-carton']={
       const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:16}); let mats=K.woodExtrude(geo,t,MD);
       const fm=K.img(V.fronton,W,Hb+t);
       { const g0=geo.groups[0], half=g0.count/2, KB=P.dosVerso==='kraft';
-        if(fm){const uv=geo.attributes.uv,pos=geo.attributes.position; for(let k=g0.start+(KB?half:0);k<g0.start+g0.count;k++) uv.setXY(k,pos.getX(k)/W,(pos.getY(k)+t)/(Hb+t)); uv.needsUpdate=true;}
-        if(KB){const gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,half,2); geo.addGroup(g0.start+half,half,0); geo.addGroup(gS.start,gS.count,1); mats=[fm||mats[0],mats[1],kraftBrut()];} /* z=0 : face arrière */
+        if(fm||KB){const uv=geo.attributes.uv,pos=geo.attributes.position; for(let k=g0.start;k<g0.start+g0.count;k++) uv.setXY(k,pos.getX(k)/W,(pos.getY(k)+t)/(Hb+t)); uv.needsUpdate=true;}
+        if(KB){ /* face arrière : bac comme le carton, fronton (au-dessus des joues) en kraft brut */
+          const ppc=8, cw=Math.max(8,Math.round(W*ppc)), chh=Math.max(8,Math.round((Hb+t)*ppc)), cv=document.createElement('canvas'); cv.width=cw; cv.height=chh; const x=cv.getContext('2d');
+          const kb=kraftBrut().map.image; x.fillStyle=x.createPattern(kb,'repeat'); x.save(); x.scale(ppc*30/kb.width,ppc*30/kb.height); x.fillRect(0,0,cw/(ppc*30/kb.width),chh/(ppc*30/kb.height)); x.restore();
+          const yS=Math.round((Hb-Hs)*ppc); x.fillStyle='#'+((MD.top&&MD.top.color)?MD.top.color.getHexString():'eceae5'); x.fillRect(0,yS,cw,chh-yS);
+          x.fillStyle='rgba(0,0,0,.18)'; x.fillRect(0,yS-1,cw,2);
+          const tx=new THREE.CanvasTexture(cv); tx.anisotropy=8; const bm=new THREE.MeshLambertMaterial({map:tx});
+          const gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,half,2); geo.addGroup(g0.start+half,half,0); geo.addGroup(gS.start,gS.count,1); mats=[fm||mats[0],mats[1],bm];} /* z=0 : face arrière */
         else if(fm) mats=[fm,mats[1]]; }
       const m=new THREE.Mesh(geo,mats); m.position.z=-Dtot; core.add(m);
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),MD.edge); e.position.copy(m.position); core.add(e);
