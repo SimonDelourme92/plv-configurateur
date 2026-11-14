@@ -2959,7 +2959,7 @@ function tex(sl,w,h){
   const c=document.createElement('canvas');
   if(ar>=1){c.width=1024; c.height=Math.max(8,Math.round(1024/ar));} else {c.height=1024; c.width=Math.max(8,Math.round(1024*ar));}
   const x=c.getContext('2d'); if(!sl.alpha){x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height);} /* alpha : PNG détouré (forme de découpe) */
-  const s=(sl.fit==='contain'?Math.min:Math.max)(c.width/im.width,c.height/im.height), dw=im.width*s, dh=im.height*s;
+  const s=(sl.fit==='contain'?Math.min:Math.max)(c.width/im.width,c.height/im.height)*(sl.fit==='contain'||sl.alpha?1:1.015), dw=im.width*s, dh=im.height*s; /* +1,5 % : rogne les liserés blancs / traits de tracé aux plis */
   x.drawImage(im,(c.width-dw)/2,(c.height-dh)/2,dw,dh);
   const t=new THREE.CanvasTexture(c); t.anisotropy=renderer.capabilities.getMaxAnisotropy?Math.min(8,renderer.capabilities.getMaxAnisotropy()):4;
   return texCache[key]=t;
