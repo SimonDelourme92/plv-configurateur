@@ -643,6 +643,7 @@ const CAT=[
   {id:'carte-500',name:'Carte 500 g (compact)',fam:'Carton',top:0xF8F7F3,side:0xEFEDE6,edge:0x9A968C,rho:0.77,tags:'carton compact cartonnette carte',use:'panel'},
   {id:'mb-blanc',thick:4,name:'Microbis couché 1 face blanc · 4 mm',fam:'Carton ondulé',top:0xF6F5F1,side:0xEDEBE5,edge:0x8A8A84,rho:0.2,tags:'microbis carton double micro cannelure jade',use:'panel'},
   {id:'mb-noir',thick:4,name:'Microbis couché 1 face, imprimé noir · 4 mm',fam:'Carton ondulé',top:0x1F1F22,side:0x1A1A1C,edge:0x6A6A6A,rho:0.2,tags:'microbis carton noir imprime',use:'panel'},
+  {id:'mb-kraft-brut',thick:4,name:'Microbis kraft brut (2 faces kraft) · 4 mm',fam:'Carton ondulé',top:0xB39472,side:0xA88660,edge:0x6E5236,rho:0.2,tags:'microbis carton kraft brun brut xavier dumont',use:'panel'},
   {id:'mb-am',thick:4,name:'Microbis couché 1 face, imprimé bleu Albin Michel · 4 mm',fam:'Carton ondulé',top:0x4B8088,side:0x447379,edge:0x2D4E52,rho:0.2,tags:'microbis carton bleu albin michel turquoise canard imprime',use:'panel'},
   {id:'mb-canard',thick:4,name:'Microbis couché 1 face, imprimé bleu canard · 4 mm',fam:'Carton ondulé',top:0x2E8E9C,side:0x28808D,edge:0x1B5A63,rho:0.2,tags:'microbis carton bleu canard turquoise imprime',use:'panel'},
   {id:'carton-gris',name:'Carton gris contrecollé',fam:'Carton',top:0xB9B6AF,side:0xAAA79F,edge:0x66635D,rho:0.7,tags:'compact',use:'panel'},
@@ -694,7 +695,7 @@ const CATS={
   comptoir:{label:'Comptoir',models:[['comptoir-bois'],['comptoir-carton']]},
   tourniquet:{label:'Tourniquet',models:[['tourniquet-bois'],['tourniquet-metal'],['tourniquet-1001'],['tourniquet-moulinet']]},
   stoprayon:{label:'Stop rayon',models:[['stoprayon-carte']]},
-  sol:{label:'Présentoir de sol',models:[['colonne-jade-4']]}
+  sol:{label:'Présentoir de sol',models:[['colonne-jade-4'],['colonne-xd-4']]}
 };
 const partsOf=(m,P)=>typeof m.parts==='function'?m.parts(P):m.parts;
 
@@ -1844,9 +1845,9 @@ MODELS['colonne-jade-4']={
     // panneau découpé : extrusion (sg -1 = côté gauche, +1 = droit) + visuel collé sur la face extérieure
     /* Microbis couché 1 face : face imprimée lisse et satinée (couché), autre face blanche brute et mate, chant cannelé */
     // blancs légèrement froids pour compenser l'éclairage chaud de la scène : rendu « blanc blanc »
-    const BRUT=new THREE.MeshLambertMaterial({color:0xE3E5E7}), coatC=new Map();
+    const KRAFT=/kraft/.test(P.mat_struct||''); const BRUT=new THREE.MeshLambertMaterial({color:KRAFT?0xA88660:0xE3E5E7}), coatC=new Map();
     const coat=M=>{if(!coatC.has(M)){let c=M.top&&M.top.color?M.top.color.getHex():0xF6F5F1; if(c===0xF6F5F1) c=0xEEF1F5;
-      coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:0x262626,shininess:42,map:M.top&&M.top.map||null}));} return coatC.get(M);};
+      coatC.set(M,new THREE.MeshPhongMaterial({color:c,specular:KRAFT?0x0a0a0a:0x262626,shininess:KRAFT?6:42,map:M.top&&M.top.map||null}));} return coatC.get(M);};
     // chant : coupe de microbis EE (couché blanc / cannelure E / papier milieu / cannelure E / blanc brut), texture dessinée ici, sans image
     const chantTex=(()=>{const c=document.createElement('canvas'); c.width=128; c.height=64; const x=c.getContext('2d'), H=64;
       const band=(y0,h,col)=>{x.fillStyle=col; x.fillRect(0,H-y0-h,128,h);};
@@ -1856,7 +1857,7 @@ MODELS['colonne-jade-4']={
     const PER=0.64; // 2 ondes de cannelure E (~3,2 mm) par motif
     const chant=(len,thick,rot)=>{const tx=chantTex.clone(); tx.needsUpdate=true; if(rot){tx.center.set(.5,.5); tx.rotation=Math.PI/2;} tx.repeat.set(len/PER,thick/(t)); return new THREE.MeshLambertMaterial({map:tx});};
     // f = indice de la face couchée (2 +y, 3 -y, 4 +z, 5 -z) ; la face opposée est brute, les 4 autres sont des chants cannelés
-    const mb=(M,f,img,dims)=>{const opp={2:3,3:2,4:5,5:4}[f], a=new Array(6); a[f]=img||coat(M); a[opp]=BRUT;
+    const mb=(M,f,img,dims)=>{const opp={0:1,1:0,2:3,3:2,4:5,5:4}[f], a=new Array(6); a[f]=img||coat(M); a[opp]=BRUT; if(f<2){for(let i=0;i<6;i++) if(!a[i]) a[i]=CHANT; return a;}
       const [dx,dy,dz]=dims||[10,10,10], th=f<4?dy:dz;
       for(let i=0;i<6;i++) if(!a[i]){ // longueur du chant le long de u ; rot si l'épaisseur tombe sur u (faces ±x d'un panneau mince en z)
         if(f>=4) a[i]=i<2?chant(dy,th,true):chant(dx,th,false); else a[i]=i<2?chant(dz,th,false):chant(dx,th,false);}
@@ -1878,6 +1879,7 @@ MODELS['colonne-jade-4']={
     [-1,1].forEach(sg=>{const pts=[[0,0],[sg*Db,Db*tn],[sg*Dt,Ytop],[0,Hs]];
       K.box(body,sg<0?-Wo/2:Wo/2-t2,sg<0?-Wo/2+t2:Wo/2,0,Hs,0,0.03,coat(MS),null); /* arête avant = pli */
       cut(body,shape(pts),t2,sg*(Wo/2-t2),sg,MS,sg<0?jim:jimD,Db,Ytop,shape([[0,0],[sg*Dc,Dc*tn],[sg*Dc,Hs+Dc*tn],[0,Hs]])); /* doublure intérieure (pli à 180°) : couché côté cases */ addM(area(pts)*t2*MS.rho,Hs/2,-(Db+Dt)/4);});
+    (P.rivets||[]).forEach(([d,s0])=>[-1,1].forEach(sg=>{const r=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,0.25,20),new THREE.MeshPhongMaterial({color:0xf2f2f0,shininess:60})); r.rotation.z=Math.PI/2; r.position.set(sg*(Wo/2+0.12),s0,-d); body.add(r);})); /* rivets plastiques */
     // dos des cases, parallèle à la façade
     K.box(body,-W/2,W/2,Dc*tn,Hs+Dc*tn,-Dc-t,-Dc,fold(mb(MS,4,null,[W,Hs,t]),MS,[0,1]),MS.edge); /* dos : plié sur les rabats latéraux */ addM(W*Hs*t*MS.rho,Hs/2,-Dc);
     // socle imprimé
@@ -1913,7 +1915,8 @@ MODELS['colonne-jade-4']={
     }
     // fronton 3 faces, posé sur le dessus (bas horizontal), face avant à l'aplomb de l'arête avant
     const yT=Hs*c, zT=-Hs*sn, hH=P.hH, hD=P.hD; let Htot=yT, zBackH=zT;
-    if(hH>0.2&&P.hMode==='decoupe'){ /* fronton à découpe libre : 3 faces planes, contour donné par la transparence des visuels */
+    const hW=P.hW>0?P.hW:Wo;
+    if(hH>0.2&&(P.hMode==='decoupe'||P.hMode==='rect')){ /* fronton à découpe libre : 3 faces planes, contour donné par la transparence des visuels */
       const hg=new THREE.Group(); hg.position.set(0,yT,zT); core.add(hg);
       const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), cimD=V.frontonCD?K.img(V.frontonCD,hD,hH):cim;
       const al=m=>{if(!m) return null; const c=m.clone(); c.alphaTest=0.5; return c;};
@@ -1921,7 +1924,12 @@ MODELS['colonne-jade-4']={
         const cv=document.createElement('canvas'); cv.width=im.width; cv.height=im.height; const x=cv.getContext('2d'); x.drawImage(im,0,0); x.globalCompositeOperation='source-in'; x.fillStyle='#E3E5E7'; x.fillRect(0,0,cv.width,cv.height);
         return new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),alphaTest:0.5,side:THREE.BackSide});};
       const pl=(w,m,x,z,ry)=>{const g=new THREE.PlaneGeometry(w,hH), q=new THREE.Group(); q.add(new THREE.Mesh(g,al(m)||coat(MF))); q.add(new THREE.Mesh(g,back(m))); q.position.set(x,hH/2,z); q.rotation.y=ry; hg.add(q);};
-      pl(Wo,fim,0,0,0); pl(hD,cim,-Wo/2,-hD/2,-Math.PI/2); pl(hD,cimD,Wo/2,-hD/2,Math.PI/2);
+      if(P.hMode==='rect'){ /* fronton boîte 3 faces rectangulaire, en épaisseur */
+        K.box(hg,-hW/2,hW/2,0,hH,-t,0,fold(mb(MF,4,K.img(V.fronton,hW,hH),[hW,hH,t]),MF,[0,1]),MF.edge);
+        [-1,1].forEach(sg=>K.box(hg,sg<0?-hW/2:hW/2-t,sg<0?-hW/2+t:hW/2,0,hH,-hD,-t,(()=>{const a=mb(MF,sg<0?1:0,null,[t,hH,hD]); return a;})(),MF.edge));
+        const ci=K.img(V.frontonC,hD,hH), ciD=V.frontonCD?K.img(V.frontonCD,hD,hH):ci;
+        [[-1,ci],[1,ciD]].forEach(([sg,im])=>{if(!im) return; const g=new THREE.PlaneGeometry(hD-t,hH), m=new THREE.Mesh(g,im); m.rotation.y=sg*Math.PI/2; m.position.set(sg*(hW/2+0.05),hH/2,-(hD+t)/2); hg.add(m);});}
+      else {pl(Wo,fim,0,0,0); pl(hD,cim,-Wo/2,-hD/2,-Math.PI/2); pl(hD,cimD,Wo/2,-hD/2,Math.PI/2);}
       parts.push({m:(Wo*hH+2*0.8*hD*hH)*t*MF.rho,y:yT+hH/2,d:-zT+hD*0.4}); Htot=yT+hH; zBackH=zT-hD;}
     else if(hH>0.2){const hg=new THREE.Group(); hg.position.set(0,yT,zT); core.add(hg);
       const fim=K.img(V.fronton,Wo,hH), cim=K.img(V.frontonC,hD,hH), cimD=V.frontonCD?K.img(V.frontonCD,hD,hH):cim, kz=hD/24.4, kh=hH/30.2;
@@ -1965,6 +1973,13 @@ MODELS['colonne-jade-4']={
   }
 };
 
+/* ---------- Colonne 4 cases générique XAVIER DUMONT (XD) — base kraft : cotes des tracés XD 2763 (col A), 2177 (étagères), 2754 (fronton) ---------- */
+MODELS['colonne-xd-4']=Object.assign({},MODELS['colonne-jade-4'],{
+  label:'Colonne 4 cases Générique XAVIER DUMONT – Base kraft', desc:'Microbis kraft brut, corps incliné, 4 tablettes, rivets, fronton boîte 3 faces',
+  defaults:{N:4,W:17.7,t:4,Hs:125.15,tilt:8.3,Db:35.84,Dt:23.98,Dc:23.0,s1:20.81,pitch:26.27,shO:6.5,shW:25.7,plH:0,hH:38.0,hD:23.0,hW:20.56,hMode:'rect',
+    rivets:[[20.5,112.9],[29.1,49.8],[32.9,9.9]],
+    book:'gf',bw:140,bh:205,bt:22,auto:true,qty:10,mat_struct:'mb-kraft-brut',mat_fronton:'mb-blanc',mat_socle:'mb-kraft-brut'}
+});
 /* =================== État =================== */
 const KEY='plvconf-v2';
 let ST; try{ST=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){ST=null;}
@@ -1998,7 +2013,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(ST));}catch(e){}};
 const curP=()=>ST.P[ST.type], G=ST.G;
 
 /* Visuels : images importées (mémorisées dans le navigateur via IndexedDB) */
-const VIS={'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
+const VIS={'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'colonne-xd-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
 const curV=()=>VIS[ST.type];
 const IDB={
   db:null,
