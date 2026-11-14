@@ -1,4 +1,8 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}/* plein écran : la vue 3D prend toute la page (API plein écran, sinon recouvrement de la fenêtre) */
+.stagewrap.fs{position:fixed!important;inset:0!important;z-index:9999;width:100vw!important;height:100vh!important;margin:0!important;border-radius:0!important;background:var(--bg,#fff)}
+.stagewrap.fs #stage{width:100%!important;height:100%!important}
+.stagewrap:fullscreen{width:100vw;height:100vh;background:var(--bg,#fff)}
+</style></head><body>
 <title>Configurateur PLV 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -561,6 +565,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
       <span class="sp"></span>
       <button class="tbtn" id="spin" aria-pressed="false" hidden>Faire tourner</button>
       <button class="tbtn" id="roomView" hidden>Vue d’ensemble</button>
+      <button class="tbtn" id="fsBtn" aria-pressed="false" title="Plein écran : la vue 3D occupe tout l'écran (Échap pour sortir)">Plein écran</button>
       <button class="tbtn" id="walkBtn" aria-pressed="false" title="Se déplacer à hauteur d'yeux : Z/Q/S/D ou flèches pour marcher, glisser pour regarder, molette pour avancer, Maj pour aller plus vite, Échap pour sortir">Marcher</button>
       <label class="simpick"><span class="lab">Décor</span><select id="environmentSelect" aria-label="Décor 3D"><option value="studio">Studio</option><option value="bookshop">Librairie</option></select></label>
     </div>
@@ -3921,6 +3926,14 @@ renderer.domElement.addEventListener('pointermove',e=>{if(!WALK.on||!WALK.drag) 
 renderer.domElement.addEventListener('pointerup',()=>{WALK.drag=null;});
 renderer.domElement.addEventListener('wheel',e=>{if(!WALK.on) return; e.preventDefault(); e.stopImmediatePropagation(); const fx=-Math.sin(WALK.yaw), fz=-Math.cos(WALK.yaw), s=-Math.sign(e.deltaY)*15; camera.position.x+=fx*s; camera.position.z+=fz*s;},{passive:false,capture:true});
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>walkSet(false),true));
+/* Plein écran */
+const fsBtn=document.getElementById('fsBtn'), fsWrap=document.querySelector('.stagewrap');
+function fsUI(on){fsWrap.classList.toggle('fs',on); fsBtn.setAttribute('aria-pressed',String(on)); fsBtn.textContent=on?'Quitter le plein écran':'Plein écran'; setTimeout(resize,60);}
+fsBtn.addEventListener('click',async()=>{const on=fsWrap.classList.contains('fs');
+  if(on){fsUI(false); if(document.fullscreenElement) try{await document.exitFullscreen();}catch(e){} return;}
+  fsUI(true); try{if(fsWrap.requestFullscreen) await fsWrap.requestFullscreen({navigationUI:'hide'});}catch(e){} /* refusé (page intégrée) : reste en recouvrement de la fenêtre */});
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&fsWrap.classList.contains('fs')) fsUI(false);});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&fsWrap.classList.contains('fs')&&!WALK.on) fsUI(false);});
 const clock=new THREE.Clock();
 const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 (function loop(now){
