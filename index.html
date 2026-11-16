@@ -502,7 +502,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 </style>
 
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 10h30</span></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 10h45</span></div>
   <label class="cursim" title="Passer d'une simulation enregistrée à l'autre"><span class="lab">Simulation</span><select id="simSel" aria-label="Simulation affichée"></select><span class="curSave" id="curSave" hidden></span></label>
   <span class="sp"></span>
   <div class="histbtns" role="group" aria-label="Historique" style="display:flex;gap:6px"><button type="button" class="tb icon" id="undoBtn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3.5L2 7l3.5 3.5M2.5 7H10a4 4 0 010 8H8"/></svg></button><button type="button" class="tb icon" id="redoBtn" title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3.5L14 7l-3.5 3.5M13.5 7H6a4 4 0 000 8h2"/></svg></button></div>
@@ -1920,7 +1920,25 @@ MODELS['assemblage-decoupe']={
       const vis=k=>k&&V[k]?K.img(Object.assign({},V[k],{fit:'contain'}),w,h):null;
       const fm=vis(pc.front)||col(pc.fcol), bm=vis(pc.back)||col(pc.bcol);
       { const n=g0.count/2, gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,n,2); geo.addGroup(g0.start+n,n,0); geo.addGroup(gS.start,gS.count,1); }
-      const m=new THREE.Mesh(geo,[fm,pc.ecol?col(pc.ecol):wm[1],bm]); m.castShadow=true;
+      /* plis : sur les arêtes pliées, pas de tranche de cannelure visible, la face du carton tourne */
+      const plis=pc.plis||[];
+      if(plis.length&&!geo.index){
+        const xs=pts.map(q=>q[0]), ys=pts.map(q=>q[1]), mnx=Math.min(...xs), mxx=Math.max(...xs), mny=Math.min(...ys), mxy=Math.max(...ys), tl=0.45;
+        const isF=(a,b)=>plis.some(r=>r==='all'||(r==='bottom'&&a[1]<mny+tl&&b[1]<mny+tl)||(r==='top'&&a[1]>mxy-tl&&b[1]>mxy-tl)||(r==='left'&&a[0]<mnx+tl&&b[0]<mnx+tl)||(r==='right'&&a[0]>mxx-tl&&b[0]>mxx-tl)||(r==='diag'&&Math.abs(a[0]-b[0])>0.3&&Math.abs(a[1]-b[1])>0.3));
+        const segs=pts.map((q,i)=>[q,pts[(i+1)%pts.length]]).filter(([a,b])=>isF(a,b));
+        const dSeg=(x,y,[a,b])=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1,u=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/L)); return Math.hypot(a[0]+u*dx-x,a[1]+u*dy-y);};
+        const gs=geo.groups.slice(), side=gs[2], fold=[], keep=[];
+        for(let k=side.start;k<side.start+side.count;k+=3){const cx=(pos.getX(k)+pos.getX(k+1)+pos.getX(k+2))/3, cy=(pos.getY(k)+pos.getY(k+1)+pos.getY(k+2))/3; (segs.some(sg=>dSeg(cx,cy,sg)<0.05)?fold:keep).push(k);}
+        if(fold.length){
+          const A=geo.attributes, names=Object.keys(A), out={}; names.forEach(nm=>out[nm]=[]);
+          const push=k=>{for(let j=0;j<3;j++) names.forEach(nm=>{const at=A[nm]; for(let c=0;c<at.itemSize;c++) out[nm].push(at.array[(k+j)*at.itemSize+c]);});};
+          for(let k=gs[0].start;k<gs[0].start+gs[0].count;k+=3) push(k); for(let k=gs[1].start;k<gs[1].start+gs[1].count;k+=3) push(k);
+          keep.forEach(push); fold.forEach(push);
+          names.forEach(nm=>geo.setAttribute(nm,new THREE.Float32BufferAttribute(out[nm],A[nm].itemSize)));
+          const n0=gs[0].count, n1=gs[1].count; geo.clearGroups(); geo.addGroup(0,n0,2); geo.addGroup(n0,n1,0); geo.addGroup(n0+n1,keep.length*3,1); geo.addGroup(n0+n1+keep.length*3,fold.length*3,3);
+        }
+      }
+      const m=new THREE.Mesh(geo,[fm,pc.ecol?col(pc.ecol):wm[1],bm,col(pc.fcol)||MD.top]); m.castShadow=true;
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MD.edge);
       const g=new THREE.Group(); g.add(m,e); g.position.set(pc.x||0,pc.y||0,pc.z||0);
       const ry=(pc.hinge?(pc.hinge*P.ang):(pc.ry||0))*Math.PI/180; g.rotation.set((pc.rx||0)*Math.PI/180,ry,0,'YXZ'); core.add(g);
