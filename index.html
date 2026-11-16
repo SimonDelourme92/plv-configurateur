@@ -1899,6 +1899,44 @@ MODELS['stoprayon-carte']={
   }
 };
 
+/* ---------- Assemblage sur mesure : PLV décrite pièce par pièce dans la simulation (contour, position, visuels) ---------- */
+MODELS['assemblage-decoupe']={
+  cat:'comptoir', label:'Assemblage sur mesure', desc:'PLV décrite pièce par pièce (contours relevés sur le tracé)',
+  defaults:{pieces:[],t:1.5,ang:38,book:'gf',bw:140,bh:205,bt:22,auto:true,qty:0,mat_carton:'cn-E'},
+  parts:[{key:'carton',label:'Carton',short:'carton',use:'panel'}],
+  slots:['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12'].map((k,i)=>({key:k,label:'Visuel '+(i+1),sub:'pièce n° '+(i+1),short:'visuel '+(i+1)})),
+  structure(ui){ ui.group('Assemblage',[F_('t','Épaisseur du carton',0.5,8,0.1,'mm'),F_('ang','Ouverture des ailes',0,90,1,'°','Angle des pièces articulées (tours, ailes) vers l\'avant.')]); },
+  specs:P=>[['Principe','assemblage sur mesure, '+(P.pieces||[]).length+' pièces'],['Carton',`ép. ${fmt(P.t)} mm`]],
+  build(P,G,K,V){
+    const MD=K.part(P,'carton'), t=Math.max(P.t,0.2)/10, core=new THREE.Group(), cache={};
+    const col=c=>c?(cache[c]||(cache[c]=new THREE.MeshLambertMaterial({color:new THREE.Color(c)}))):MD.top;
+    (P.pieces||[]).forEach(pc=>{
+      const pts=pc.pts&&pc.pts.length>2?pc.pts:[[0,0],[pc.w,0],[pc.w,pc.h],[0,pc.h]], w=pc.w||1, h=pc.h||1, ox=pc.ox||0;
+      const sp=new THREE.Shape(); pts.forEach(([x,y],i)=>i?sp.lineTo(x,y):sp.moveTo(x,y)); sp.closePath();
+      const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:1}), uv=geo.attributes.uv, pos=geo.attributes.position, g0=geo.groups[0];
+      for(let k=g0.start;k<g0.start+g0.count;k++){const vi=geo.index?geo.index.getX(k):k; let u=(pos.getX(vi)-ox)/w; if(pos.getZ(vi)<t/2) u=1-u; uv.setXY(vi,u,pos.getY(vi)/h);} uv.needsUpdate=true;
+      const vis=k=>k&&V[k]?K.img(Object.assign({},V[k],{fit:'contain'}),w,h):null;
+      const fm=vis(pc.front)||col(pc.fcol), bm=vis(pc.back)||col(pc.bcol);
+      { const n=g0.count/2, gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,n,2); geo.addGroup(g0.start+n,n,0); geo.addGroup(gS.start,gS.count,1); }
+      const m=new THREE.Mesh(geo,[fm,col(pc.ecol)||MD.side,bm]); m.castShadow=true;
+      const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MD.edge);
+      const g=new THREE.Group(); g.add(m,e); g.position.set(pc.x||0,pc.y||0,pc.z||0);
+      const ry=(pc.hinge?(pc.hinge*P.ang):(pc.ry||0))*Math.PI/180; g.rotation.set((pc.rx||0)*Math.PI/180,ry,0,'YXZ'); core.add(g);
+    });
+    core.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(core); if(bb.isEmpty()) bb.set(new THREE.Vector3(0,0,-1),new THREE.Vector3(1,1,0));
+    core.position.set(-bb.min.x,0,-bb.max.z); const W=bb.max.x-bb.min.x, D=bb.max.z-bb.min.z, H=bb.max.y;
+    const out=new THREE.Group(); out.add(core);
+    const sz=Math.max(1.6,Math.max(W,D,H)/24), o=sz*1.6, dims=new THREE.Group(); dims.userData.isDims=true; dims.visible=G.showDims; out.add(dims);
+    K.dim(dims,[0,0,o],[W,0,o],[0,0,1],fmt(W)+' cm',[W/2,0,o+sz*1.4],sz);
+    K.dim(dims,[-o,0,-D],[-o,H,-D],[1,0,0],fmt(H)+' cm',[-o-sz*2.6,H/2,-D],sz);
+    K.dim(dims,[W+o,0,0],[W+o,0,-D],[1,0,0],fmt(D)+' cm',[W+o+sz*2.6,0,-D/2],sz);
+    const sl={}; (P.pieces||[]).forEach(pc=>{[pc.front,pc.back].forEach(k=>{if(k) sl[k]=[pc.w,pc.h];});});
+    return {core:out,fill:{per:0,cap:0,facings:0,total:0,unit:'pile',units:'Piles'},slotSizes:sl,bounds:{x0:0,x1:W,z0:-D,z1:0,yBase:0,Htot:H},
+      pad:{right:o+sz*5+6,left:o+sz*3+6,front:o+4},kv:[['Hors-tout L × P × H',`${fmt(W)} × ${fmt(D)} × ${fmt(H)}`,true],['Pièces',`${(P.pieces||[]).length}`],['Carton',`${fmt(P.t)} mm`]],
+      measures:[['Hors-tout',`${fmt(W)} × ${fmt(D)} × ${fmt(H)} cm`]],alerts:[]};
+  }
+};
+
 /* ---------- Silhouette de table : panneau découpé (contour relevé sur le tracé) posé sur 2 pieds à plat ---------- */
 MODELS['silhouette-table']={
   cat:'silhouette', label:'Silhouette de table', desc:'Panneau découpé recto-verso, debout sur 2 pieds', flat:true,
@@ -2250,7 +2288,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(ST));}catch(e){}};
 const curP=()=>ST.P[ST.type], G=ST.G;
 
 /* Visuels : images importées (mémorisées dans le navigateur via IndexedDB) */
-const VIS={'silhouette-table':{covers:[]},'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'porteflyer-30':{covers:[]},'colonne-xd-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
+const VIS={'assemblage-decoupe':{covers:[]},'silhouette-table':{covers:[]},'tourniquet-moulinet':{covers:[],frontonSame:true},'tourniquet-1001':{covers:[],frontonSame:true},'tourniquet-hannecke-u':{covers:[]},'tourniquet-metal':{covers:[],frontonSame:true},'stoprayon-carte':{covers:[]},'colonne-jade-4':{covers:[]},'porteflyer-30':{covers:[]},'colonne-xd-4':{covers:[]},'comptoir-bois':{covers:[],decals:[]},'comptoir-carton':{covers:[],decals:[]},'tourniquet-bois':{covers:[],frontonSame:true}};
 const curV=()=>VIS[ST.type]||(VIS[ST.type]={covers:[]});
 const IDB={
   db:null,
