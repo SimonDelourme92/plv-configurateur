@@ -3097,7 +3097,9 @@ function glbLambert(o){o.traverse(m=>{if(!m.isMesh) return; m.userData.keepGPU=t
  m.material=Array.isArray(m.material)?m.material.map(conv):conv(m.material);});return o;}
 function loadGLB(url){if(GLB.cache[url]) return GLB.cache[url];
  GLB.cache[url]=new Promise(res=>{if(!THREE.GLTFLoader) return res(null);
-  new THREE.GLTFLoader().load(url,g=>res(glbLambert(g.scene)),undefined,()=>res(null));});
+  const L=new THREE.GLTFLoader(), ok=g=>res(glbLambert(g.scene));
+  /* sur claude.ai les .glb ne sont pas servis : même modèle en .gltf.json */
+  L.load(url,ok,undefined,()=>/\.glb$/.test(url)?L.load(url.replace(/\.glb$/,'.gltf.json'),ok,undefined,()=>res(null)):res(null));});
  return GLB.cache[url];}
 function glbPart(scene,name,x,z,turn,y=0,s=1){const src=scene.getObjectByName(name); if(!src) return null;
  const o=src.clone(); o.position.set(0,0,0); const g=new THREE.Group(); g.add(o); g.scale.setScalar(100*s); g.position.set(x,y,z); g.rotation.y=turn; return g;}
