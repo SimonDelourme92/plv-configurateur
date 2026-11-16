@@ -502,7 +502,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 </style>
 
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 10h45</span></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 11h30</span></div>
   <label class="cursim" title="Passer d'une simulation enregistrée à l'autre"><span class="lab">Simulation</span><select id="simSel" aria-label="Simulation affichée"></select><span class="curSave" id="curSave" hidden></span></label>
   <span class="sp"></span>
   <div class="histbtns" role="group" aria-label="Historique" style="display:flex;gap:6px"><button type="button" class="tb icon" id="undoBtn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3.5L2 7l3.5 3.5M2.5 7H10a4 4 0 010 8H8"/></svg></button><button type="button" class="tb icon" id="redoBtn" title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3.5L14 7l-3.5 3.5M13.5 7H6a4 4 0 000 8h2"/></svg></button></div>
@@ -1905,7 +1905,7 @@ MODELS['assemblage-decoupe']={
   cat:'comptoir', label:'Assemblage sur mesure', desc:'PLV décrite pièce par pièce (contours relevés sur le tracé)',
   defaults:{pieces:[],t:1.5,ang:38,book:'gf',bw:140,bh:205,bt:22,auto:true,qty:0,mat_carton:'cn-E'},
   parts:[{key:'carton',label:'Carton',short:'carton',use:'panel'}],
-  slots:['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12'].map((k,i)=>({key:k,label:'Visuel '+(i+1),sub:'pièce n° '+(i+1),short:'visuel '+(i+1)})),
+  slots:['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16'].map((k,i)=>({key:k,label:'Visuel '+(i+1),sub:'pièce n° '+(i+1),short:'visuel '+(i+1)})),
   structure(ui){ ui.group('Assemblage',[F_('t','Épaisseur du carton',0.5,8,0.1,'mm'),F_('ang','Ouverture des ailes',0,90,1,'°','Angle des pièces articulées (tours, ailes) vers l\'avant.')]); },
   specs:P=>[['Principe','assemblage sur mesure, '+(P.pieces||[]).length+' pièces'],['Carton',`ép. ${fmt(P.t)} mm`]],
   build(P,G,K,V){
@@ -1941,7 +1941,7 @@ MODELS['assemblage-decoupe']={
       const m=new THREE.Mesh(geo,[fm,pc.ecol?col(pc.ecol):wm[1],bm,col(pc.fcol)||MD.top]); m.castShadow=true;
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MD.edge);
       const g=new THREE.Group(); g.add(m,e); g.position.set(pc.x||0,pc.y||0,pc.z||0);
-      const ry=(pc.hinge?(pc.hinge*P.ang):(pc.ry||0))*Math.PI/180; g.rotation.set((pc.rx||0)*Math.PI/180,ry,0,'YXZ'); core.add(g);
+      const ry=(pc.hinge?(pc.hinge*P.ang):(pc.ry||0))*Math.PI/180; g.rotation.set((pc.rx||0)*Math.PI/180,ry,(pc.rz||0)*Math.PI/180,pc.ord||'YXZ'); core.add(g);
     });
     core.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(core); if(bb.isEmpty()) bb.set(new THREE.Vector3(0,0,-1),new THREE.Vector3(1,1,0));
     core.position.set(-bb.min.x,0,-bb.max.z); const W=bb.max.x-bb.min.x, D=bb.max.z-bb.min.z, H=bb.max.y;
