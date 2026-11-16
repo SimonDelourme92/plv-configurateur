@@ -611,7 +611,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
   <div class="savesbox">
     <div class="svhead"><h2>Comparer des simulations</h2><button type="button" class="btn" id="cmpClose">Fermer</button></div>
     <p class="note">Coche les PLV à afficher côte à côte. L'ordre de gauche à droite se règle avec ◀ ▶.</p>
-    <div class="svio"><button type="button" class="btn" id="cmpAll">Tout sélectionner</button><button type="button" class="btn" id="cmpNone">Aucune</button><span class="note" id="cmpCount"></span><button type="button" class="btn primary" id="cmpGo">Afficher côte à côte</button><span class="note" id="cmpMsg"></span></div>
+    <div class="svio"><button type="button" class="btn" id="cmpAll">Tout sélectionner</button><button type="button" class="btn" id="cmpNone">Aucune</button><span class="note" id="cmpCount"></span><label class="note" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cmpBooks" checked> Avec les livres</label><button type="button" class="btn primary" id="cmpGo">Afficher côte à côte</button><span class="note" id="cmpMsg"></span></div>
     <div class="cmplist" id="cmpList"></div>
   </div>
 </div>
@@ -3870,12 +3870,12 @@ async function cmpLoad(id){const d=(await svList()).find(x=>x.id===id); if(!d||!
 function buildCompare(){
   /* Comparaison : les PLV de comptoir et tout ce qui fait moins de 50 cm sont rangés sur des tables (75 cm), les PLV de sol posées au sol. Pas de cotes. */
   const grp=new THREE.Group(), keepT=ST.type, keepD=G.showDims, gap=25, TH=75, TMAX=170, tgap=12;
-  G.showDims=false; const built=[];
+  const keepB=G.showBooks; G.showDims=false; G.showBooks=CMP.books!==false; const built=[];
   CMP.items.forEach(it=>{const t=it.d.type, keepV=VIS[t]; ST.type=t; VIS[t]=it.V;
     let r; try{r=MODELS[t].build(it.P,G,K,it.V);}catch(e){console.warn(e); VIS[t]=keepV; return;}
     VIS[t]=keepV; r.core.traverse(o=>{if(o.userData&&o.userData.isDims) o.visible=false;});
     const b=r.bounds, h=b.Htot-b.yBase; built.push({it,r,b,w:b.x1-b.x0,h,small:!MODELS[t].floor||h<50});});
-  ST.type=keepT; G.showDims=keepD;
+  ST.type=keepT; G.showDims=keepD; G.showBooks=keepB;
   const tops=[]; let cur=null; /* remplissage des tables */
   built.filter(x=>x.small).forEach(x=>{if(!cur||(cur.w+tgap+x.w>TMAX&&cur.list.length)){cur={list:[],w:0}; tops.push(cur);} cur.w+=(cur.list.length?tgap:0)+x.w; cur.list.push(x);});
   const TM=new THREE.MeshLambertMaterial({color:0xE9E4DA}), LM=new THREE.MeshLambertMaterial({color:0x8B8F94});
@@ -3909,7 +3909,7 @@ async function cmpRender(){let L=[]; try{L=await svList();}catch(e){} L.sort((a,
   document.getElementById('cmpCount').textContent=cmpSel.length?`${cmpSel.length} sélectionnée${cmpSel.length>1?'s':''}`:'';}
 async function cmpShow(){if(!cmpSel.length) return; const msg=document.getElementById('cmpMsg'); msg.textContent='Chargement…';
   const items=[]; for(const id of cmpSel){const it=await cmpLoad(id); if(it) items.push(it);}
-  CMP={on:true,items}; msg.textContent=''; cmpOv.hidden=true; cmpExit.hidden=false; document.getElementById('cmpBtn').classList.add('on'); changed(true); setTimeout(()=>goView('face'),60);}
+  CMP={on:true,items,books:document.getElementById('cmpBooks').checked}; try{localStorage.setItem('plvconf-cmp-books',CMP.books?'1':'0');}catch(e){} msg.textContent=''; cmpOv.hidden=true; cmpExit.hidden=false; document.getElementById('cmpBtn').classList.add('on'); changed(true); setTimeout(()=>goView('face'),60);}
 function cmpQuit(){CMP={on:false,items:[]}; cmpExit.hidden=true; document.getElementById('cmpBtn').classList.remove('on'); changed(true);}
 document.getElementById('cmpBtn').addEventListener('click',()=>{cmpOv.hidden=false; if(!cmpSel.length&&CMP.items.length) cmpSel=CMP.items.map(i=>i.id); cmpRender();});
 document.getElementById('cmpClose').addEventListener('click',()=>{cmpOv.hidden=true;});
@@ -3917,6 +3917,8 @@ cmpOv.addEventListener('click',e=>{if(e.target===cmpOv) cmpOv.hidden=true;});
 document.getElementById('cmpAll').addEventListener('click',async()=>{const L=await svList(); cmpSel=L.sort((a,b)=>(b.updated||'').localeCompare(a.updated||'')).map(d=>d.id); cmpRender();});
 document.getElementById('cmpNone').addEventListener('click',()=>{cmpSel=[]; cmpRender();});
 document.getElementById('cmpGo').addEventListener('click',cmpShow);
+try{if(localStorage.getItem('plvconf-cmp-books')==='0') document.getElementById('cmpBooks').checked=false;}catch(e){}
+document.getElementById('cmpBooks').addEventListener('change',e=>{if(CMP.on){CMP.books=e.target.checked; try{localStorage.setItem('plvconf-cmp-books',CMP.books?'1':'0');}catch(_){} changed(true);}});
 cmpExit.addEventListener('click',cmpQuit);
 
 /* ---- Sélecteur de simulations (barre d'outils) ---- */
