@@ -502,7 +502,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 </style>
 
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 10h</span></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 10h05</span></div>
   <label class="cursim" title="Passer d'une simulation enregistrée à l'autre"><span class="lab">Simulation</span><select id="simSel" aria-label="Simulation affichée"></select><span class="curSave" id="curSave" hidden></span></label>
   <span class="sp"></span>
   <div class="histbtns" role="group" aria-label="Historique" style="display:flex;gap:6px"><button type="button" class="tb icon" id="undoBtn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3.5L2 7l3.5 3.5M2.5 7H10a4 4 0 010 8H8"/></svg></button><button type="button" class="tb icon" id="redoBtn" title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3.5L14 7l-3.5 3.5M13.5 7H6a4 4 0 000 8h2"/></svg></button></div>
@@ -731,7 +731,7 @@ function comptoirBays(P){
 const MODELS={};
 const F_=(k,label,min,max,step,u,help)=>({k,label,min,max,step,u,help});
 const CATS={
-  comptoir:{label:'Comptoir',models:[['comptoir-bois'],['comptoir-carton'],['porteflyer-30']]},
+  comptoir:{label:'Comptoir',models:[['comptoir-bois'],['comptoir-carton'],['porteflyer-30'],['assemblage-decoupe']]},
   tourniquet:{label:'Tourniquet',models:[['tourniquet-bois'],['tourniquet-metal'],['tourniquet-1001'],['tourniquet-moulinet']]},
   stoprayon:{label:'Stop pile pliant',models:[['stoprayon-carte']]},
   silhouette:{label:'Silhouette de table',models:[['silhouette-table']]},
