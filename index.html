@@ -502,7 +502,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 </style>
 
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 10h05</span></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 10h30</span></div>
   <label class="cursim" title="Passer d'une simulation enregistrée à l'autre"><span class="lab">Simulation</span><select id="simSel" aria-label="Simulation affichée"></select><span class="curSave" id="curSave" hidden></span></label>
   <span class="sp"></span>
   <div class="histbtns" role="group" aria-label="Historique" style="display:flex;gap:6px"><button type="button" class="tb icon" id="undoBtn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3.5L2 7l3.5 3.5M2.5 7H10a4 4 0 010 8H8"/></svg></button><button type="button" class="tb icon" id="redoBtn" title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3.5L14 7l-3.5 3.5M13.5 7H6a4 4 0 000 8h2"/></svg></button></div>
@@ -1915,11 +1915,12 @@ MODELS['assemblage-decoupe']={
       const pts=pc.pts&&pc.pts.length>2?pc.pts:[[0,0],[pc.w,0],[pc.w,pc.h],[0,pc.h]], w=pc.w||1, h=pc.h||1, ox=pc.ox||0;
       const sp=new THREE.Shape(); pts.forEach(([x,y],i)=>i?sp.lineTo(x,y):sp.moveTo(x,y)); sp.closePath();
       const geo=new THREE.ExtrudeGeometry(sp,{depth:t,bevelEnabled:false,curveSegments:1}), uv=geo.attributes.uv, pos=geo.attributes.position, g0=geo.groups[0];
+      const wm=K.woodExtrude(geo,t,MD,true); /* tranches : cannelure comme les comptoirs carton */
       for(let k=g0.start;k<g0.start+g0.count;k++){const vi=geo.index?geo.index.getX(k):k; let u=(pos.getX(vi)-ox)/w; if(pos.getZ(vi)<t/2) u=1-u; uv.setXY(vi,u,pos.getY(vi)/h);} uv.needsUpdate=true;
       const vis=k=>k&&V[k]?K.img(Object.assign({},V[k],{fit:'contain'}),w,h):null;
       const fm=vis(pc.front)||col(pc.fcol), bm=vis(pc.back)||col(pc.bcol);
       { const n=g0.count/2, gS=geo.groups[1]; geo.clearGroups(); geo.addGroup(g0.start,n,2); geo.addGroup(g0.start+n,n,0); geo.addGroup(gS.start,gS.count,1); }
-      const m=new THREE.Mesh(geo,[fm,col(pc.ecol)||MD.side,bm]); m.castShadow=true;
+      const m=new THREE.Mesh(geo,[fm,pc.ecol?col(pc.ecol):wm[1],bm]); m.castShadow=true;
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),MD.edge);
       const g=new THREE.Group(); g.add(m,e); g.position.set(pc.x||0,pc.y||0,pc.z||0);
       const ry=(pc.hinge?(pc.hinge*P.ang):(pc.ry||0))*Math.PI/180; g.rotation.set((pc.rx||0)*Math.PI/180,ry,0,'YXZ'); core.add(g);
