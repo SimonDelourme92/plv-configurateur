@@ -502,7 +502,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 </style>
 
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 11h30</span></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 16/11 · 23h20</span></div>
   <label class="cursim" title="Passer d'une simulation enregistrée à l'autre"><span class="lab">Simulation</span><select id="simSel" aria-label="Simulation affichée"></select><span class="curSave" id="curSave" hidden></span></label>
   <span class="sp"></span>
   <div class="histbtns" role="group" aria-label="Historique" style="display:flex;gap:6px"><button type="button" class="tb icon" id="undoBtn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3.5L2 7l3.5 3.5M2.5 7H10a4 4 0 010 8H8"/></svg></button><button type="button" class="tb icon" id="redoBtn" title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3.5L14 7l-3.5 3.5M13.5 7H6a4 4 0 000 8h2"/></svg></button></div>
@@ -631,6 +631,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 /* Hors de Claude : pas de compte -> sauvegardes dans ce navigateur ; téléchargements = fichiers classiques */
 if(!window.claude) window.claude={use:n=>n==='downloads'?Promise.resolve({save:async({filename,data})=>{
@@ -2815,9 +2816,13 @@ for(let row=0;row<16;row++)for(let col=-1;col<4;col++){
 }
 const floorTex=new THREE.CanvasTexture(floorCanvas);floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(4,4);floorTex.anisotropy=4;
 const shopFloor=shopBox(bookshop,1100,3,1000,0,-1.7,0,0xffffff);shopFloor.material=new THREE.MeshLambertMaterial({map:floorTex});
+// Parquet point de Hongrie (Poly Haven, CC0) : 1 motif = 3,40 m ; le parquet dessiné reste affiché tant que la photo charge.
+new THREE.TextureLoader().load('assets/3d/parquet-hongrie.jpg',t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1100/340,1000/340);t.anisotropy=8;shopFloor.material.map=t;shopFloor.material.needsUpdate=true;});
 const shopWallMat=new THREE.MeshLambertMaterial({color:0xece5d6});
-{const bw=new THREE.Mesh(new THREE.PlaneGeometry(1100,300),shopWallMat);bw.position.set(0,150,-360);bookshop.add(bw);
- const lw=new THREE.Mesh(new THREE.PlaneGeometry(840,300),shopWallMat);lw.rotation.y=Math.PI/2;lw.position.set(-550,150,60);bookshop.add(lw);}
+function wallUV(m,w,h){const uv=m.geometry.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*w/200,uv.getY(i)*h/200);uv.needsUpdate=true;return m;}
+new THREE.TextureLoader().load('assets/3d/platre.jpg',t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;shopWallMat.map=t;shopWallMat.color.setHex(0xffffff);shopWallMat.needsUpdate=true;});
+{const bw=wallUV(new THREE.Mesh(new THREE.PlaneGeometry(1100,300),shopWallMat),1100,300);bw.position.set(0,150,-360);bookshop.add(bw);
+ const lw=wallUV(new THREE.Mesh(new THREE.PlaneGeometry(840,300),shopWallMat),840,300);lw.rotation.y=Math.PI/2;lw.position.set(-550,150,60);bookshop.add(lw);}
 shopWoodBox(bookshop,1100,10,3,0,5,-356);
 // Couvertures graphiques fictives : vraies faces imprimées, dos et pages distincts.
 const shopPalette=['#153c49','#c65b36','#e2b849','#eee2ca','#9c3546','#347e84','#393649','#64844b'];
@@ -2909,11 +2914,9 @@ function batchShop(group){
 // Suspensions : câble, abat-jour, diffuseur et lumière dirigée vers les tables.
 const shopLampMetal=new THREE.MeshPhongMaterial({color:0x343b38,shininess:38});
 const shopLampInside=new THREE.MeshBasicMaterial({color:0xffe1a0,side:THREE.DoubleSide});
+const shopPendants=[];
 function shopPendant(x,z,y,r){
- const cable=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,298-y,8),shopLampMetal);cable.position.set(x,(298+y)/2,z);bookshop.add(cable);
- const shade=new THREE.Mesh(new THREE.CylinderGeometry(r*0.25,r,13,32,1,true),shopLampMetal);shade.position.set(x,y,z);bookshop.add(shade);
- const rim=new THREE.Mesh(new THREE.TorusGeometry(r,0.7,8,32),shopLampMetal);rim.rotation.x=Math.PI/2;rim.position.set(x,y-6.5,z);bookshop.add(rim);
- const diffuser=new THREE.Mesh(new THREE.CircleGeometry(r*0.92,32),shopLampInside);diffuser.rotation.x=Math.PI/2;diffuser.position.set(x,y-6.2,z);bookshop.add(diffuser);
+ shopPendants.push([x,z,y]);
  const light=new THREE.SpotLight(0xffdfac,0.45,360,Math.PI/3,0.75,1);light.position.set(x,y-8,z);light.target.position.set(x,70,z);bookshop.add(light,light.target);
 }
 shopPendant(-265,-115,222,23);shopPendant(255,-155,222,23);shopPendant(60,-245,230,20);
@@ -2954,7 +2957,7 @@ shopTextPanel(bookshop,'CAISSE  •  CONSEILS',150,24,65,264,-355,'#e8dfcc','#46
 
 // ---- Compléments de décor : mur droit, vitrine, coin lecture, plantes ----
 // Murs à simple face : visibles de l'intérieur, jamais devant la caméra quand on recule.
-const rightWall=new THREE.Mesh(new THREE.PlaneGeometry(840,300),shopWallMat);rightWall.rotation.y=-Math.PI/2;rightWall.position.set(550,150,60);bookshop.add(rightWall);
+const rightWall=wallUV(new THREE.Mesh(new THREE.PlaneGeometry(840,300),shopWallMat),840,300);rightWall.rotation.y=-Math.PI/2;rightWall.position.set(550,150,60);bookshop.add(rightWall);
 const rightShelves=new THREE.Group();rightShelves.position.set(523,0,-130);rightShelves.rotation.y=-Math.PI/2;bookshop.add(rightShelves);
 ['PHILOSOPHIE','SCIENCES','NATURE'].forEach((t,i)=>shelf(rightShelves,(i-1)*140,0,130,238,t,i%2?4:3));
 // Vitrine sur rue (texture dessinée) avec porte vitrée.
@@ -2978,7 +2981,7 @@ const rug2=new THREE.Mesh(new THREE.RingGeometry(78,84,48),new THREE.MeshLambert
 function armchair(x,z,turn,col){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=turn;bookshop.add(g);
  shopBox(g,62,16,60,0,34,0,col);shopBox(g,62,52,14,0,62,-24,col);for(const s of [-1,1]){shopBox(g,11,30,62,s*33,45,0,col);}
  shopBox(g,50,7,46,0,45,4,0xe9dcc0);for(const sx of [-26,26])for(const sz of [-24,24])shopWoodBox(g,4,26,4,sx,13,sz);}
-armchair(430,290,-2.45,0x2f5d62);armchair(345,205,0.75,0xc9973f);
+// Fauteuils : modèles Poly Haven, posés au chargement (voir « Modèles 3D libres »).
 const gueridonTop=new THREE.Mesh(new THREE.CylinderGeometry(20,20,3,28),shopWood);gueridonTop.position.set(445,50,205);bookshop.add(gueridonTop);
 const gueridonLeg=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,48,10),shopLampMetal);gueridonLeg.position.set(445,25,205);bookshop.add(gueridonLeg);
 const gueridonFoot=new THREE.Mesh(new THREE.CylinderGeometry(13,13,1.5,24),shopLampMetal);gueridonFoot.position.set(445,0.8,205);bookshop.add(gueridonFoot);
@@ -2994,7 +2997,7 @@ function plant(x,z,s=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.
  const pot=new THREE.Mesh(new THREE.CylinderGeometry(15,11,28,20),potMat);pot.position.y=14;g.add(pot);
  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.8,60,8),new THREE.MeshLambertMaterial({color:0x6b5137}));trunk.position.y=58;g.add(trunk);
  for(let k=0;k<11;k++){const a=k*2.4,r=8+shopRand()*17,leaf=new THREE.Mesh(new THREE.SphereGeometry(11+shopRand()*6,10,8),leafMats[k%3]);leaf.scale.set(1,0.55,0.75);leaf.position.set(Math.cos(a)*r,62+k*5.5+shopRand()*6,Math.sin(a)*r);leaf.rotation.set(shopRand(),a,shopRand()*0.8);g.add(leaf);}}
-plant(318,-205,1.05);plant(-505,440,1.2);plant(500,420,0.95);
+// Plantes : modèles Poly Haven, posées au chargement (voir « Modèles 3D libres »).
 // Colonne : affichette, et cartons « coup de cœur » sur les tables.
 shopTextPanel(bookshop,'COUPS DE CŒUR',30,9,360,172,-232.7,'#46534c','#fff1d5',100);
 shopTextPanel(bookshop,'NOUVEAUTÉS',30,9,360,160,-232.7,'#c65b36','#fff1d5',100);
@@ -3021,11 +3024,7 @@ function person(x,z,turn,shirt,pants,hair,h=170,pose='stand'){
  if(pose==='read'){const b=shopBook(g,0,112,32,15,22,1.8,Math.floor(shopRand()*24),false,true);b.rotation.x=-0.9;b.rotation.y=Math.PI;}
  if(pose==='sit'){g.children.forEach(o=>{if(o.position.y<90){o.position.y=o.position.y*0.5+40;}});}
  return g;}
-person(-200,-20,0.9,0x6f8fa8,0x2f3a4a,0x3b2a1e,168,'read');
-person(330,-30,-2.3,0xc9734a,0x45464a,0x1f1b18,176);
-person(60,-160,Math.PI,0x7b9a6b,0x3d3d44,0x8a6a45,172,'stand');
-person(-420,-200,-Math.PI/2,0xe0c56a,0x37465a,0x5a3b28,162,'reach');
-person(260,330,2.6,0xb85a6a,0x2d2f38,0x2a211b,110);
+// Clients : personnages 3D réalistes, posés au chargement (voir « Modèles 3D libres »).
 // Échelle de librairie sur rail, contre le rayonnage du fond.
 (function(){const g=new THREE.Group();g.position.set(-215,0,-300);g.rotation.x=-0.27;bookshop.add(g);
  for(const sx of [-21,21])shopWoodBox(g,4,236,4,sx,118,0);
@@ -3086,12 +3085,53 @@ for(let x=-420;x<=420;x+=105){const g=new THREE.Group();g.position.set(x,288,-25
  const ln=new THREE.Mesh(new THREE.CircleGeometry(3.8,14),bulbMat);ln.rotation.x=Math.PI/2;ln.position.y=-6.6;g.add(ln);}
 
 batchShop(bookshop);
+// ---- Modèles 3D libres (CC0) : clients, fauteuils, plantes, suspensions ; silhouette 1,75 m ----
+// Sources et licences : assets/3d/CREDITS.md. Chargés seulement quand on en a besoin.
+const GLB={cache:{}};
+function glbLambert(o){o.traverse(m=>{if(!m.isMesh) return; m.userData.keepGPU=true;
+ const conv=om=>{const glow=/glass|globe/i.test(om.name||'');
+  if(om.map){om.map.encoding=THREE.LinearEncoding; om.map.anisotropy=4;}
+  if(glow) return new THREE.MeshBasicMaterial({color:0xfff1d6});
+  const nm=new THREE.MeshLambertMaterial({map:om.map||null,side:om.side,alphaTest:om.alphaTest||0});
+  nm.color.copy(om.color).convertLinearToSRGB(); return nm;};
+ m.material=Array.isArray(m.material)?m.material.map(conv):conv(m.material);});return o;}
+function loadGLB(url){if(GLB.cache[url]) return GLB.cache[url];
+ GLB.cache[url]=new Promise(res=>{if(!THREE.GLTFLoader) return res(null);
+  new THREE.GLTFLoader().load(url,g=>res(glbLambert(g.scene)),undefined,()=>res(null));});
+ return GLB.cache[url];}
+function glbPart(scene,name,x,z,turn,y=0,s=1){const src=scene.getObjectByName(name); if(!src) return null;
+ const o=src.clone(); o.position.set(0,0,0); const g=new THREE.Group(); g.add(o); g.scale.setScalar(100*s); g.position.set(x,y,z); g.rotation.y=turn; return g;}
+let shopAssetsAsked=false;
+function ensureShopAssets(){if(shopAssetsAsked) return; shopAssetsAsked=true;
+ loadGLB('assets/3d/decor-librairie.glb').then(sc=>{if(!sc) return; const add=o=>{if(o) bookshop.add(o);};
+  add(glbPart(sc,'mid_century_lounge_chair',430,290,-2.45,0,0.9));
+  add(glbPart(sc,'modern_arm_chair_01',338,198,0.75));
+  add(glbPart(sc,'potted_plant_01',318,-205,0,0,1.15));
+  add(glbPart(sc,'potted_plant_01',-505,440,2.1,0,1.25));
+  add(glbPart(sc,'potted_plant_02',495,415,0.6,0,1.1));
+  add(glbPart(sc,'standing_chalkboard_01',-445,-15,0.75,0,0.85));
+  shopPendants.forEach(([x,z])=>add(glbPart(sc,'modern_ceiling_lamp_01',x,z,0,300-117)));});
+ loadGLB('assets/3d/clients-librairie.glb').then(sc=>{if(!sc) return; const add=o=>{if(o) bookshop.add(o);};
+  add(glbPart(sc,'lecture',-200,-20,0.9));
+  add(glbPart(sc,'table',310,-75,-2.54));
+  add(glbPart(sc,'caisse',60,-160,Math.PI));
+  add(glbPart(sc,'rayon',-452,-195,-Math.PI/2));
+  add(glbPart(sc,'marche',-290,330,2.7));});}
+window.__shop={bookshop,get camera(){return camera;},get controls(){return controls;}}; /* contrôle des captures */
+// Silhouette 1,75 m : personnage réaliste mis exactement à 175 cm ; la silhouette simple sert en attendant.
+let silhouetteGLB=null, silhouetteAsked=false;
+function silhouetteObject(){
+ if(silhouetteGLB){const o=silhouetteGLB.clone(); return o;}
+ if(!silhouetteAsked){silhouetteAsked=true; loadGLB('assets/3d/silhouette-175.glb').then(sc=>{if(!sc) return; const src=sc.getObjectByName('silhouette')||sc;
+  const g=new THREE.Group(), o=src.clone(); o.position.set(0,0,0); g.add(o); g.updateMatrixWorld(true); const b=new THREE.Box3().setFromObject(g);
+  g.scale.setScalar(175/Math.max(0.01,b.max.y-b.min.y)); silhouetteGLB=g; if(G.showPerson) try{changed();}catch(e){}});}
+ return buildPerson();}
 function syncEnvironment(){
  if(!R) return;
  const on=environmentMode==='bookshop', b=R.bounds;
  const raised=!MODELS[ST.type].floor&&!(R&&R.cmp);
  const elevation=raised?Math.max(1,G.counterH||94):0;
- bookshop.visible=on;
+ bookshop.visible=on; if(on) ensureShopAssets();
  skyLight.intensity=on?0.8:1.0; skyLight.color.setHex(on?0xfff3e0:0xfffaf2); skyLight.groundColor.setHex(on?0xd9c9ae:0xe2ded6); sun.intensity=on?0.3:0.36;
  bookshop.position.set((b.x0+b.x1)/2,b.yBase-elevation-0.1,(b.z0+b.z1)/2);
  shopCounter.visible=raised;
@@ -3105,7 +3145,7 @@ function syncEnvironment(){
 }
 document.getElementById('environmentSelect').addEventListener('change',e=>{
  environmentMode=e.target.value; try{localStorage.setItem('plvconf-environment',environmentMode);}catch(e){}
- syncEnvironment(); goView('34');
+ build(); goView('34');
 });
 document.getElementById('roomView').addEventListener('click',()=>{
  if(!R) return; const b=R.bounds, floor=bookshop.position.y;
@@ -3366,7 +3406,7 @@ function buildPerson(){
   part(new THREE.CylinderGeometry(5,5,10,16),0,153); part(new THREE.SphereGeometry(11,24,18),0,164);
   return g;
 }
-function disposeTree(o){o.traverse(c=>{if(c.geometry) c.geometry.dispose(); if(c.isSprite&&c.material.map) c.material.map.dispose();
+function disposeTree(o){o.traverse(c=>{if(c.userData.keepGPU) return; if(c.geometry) c.geometry.dispose(); if(c.isSprite&&c.material.map) c.material.map.dispose();
   if(c.material&&!Array.isArray(c.material)&&c.material.map&&!c.isSprite&&!Object.values(texCache).includes(c.material.map)) c.material.map.dispose();});}
 
 let root=null, R=null, FLOORY=0;
@@ -3403,8 +3443,11 @@ function build(){
   }
   if(G.showPerson){
     const pz=SC?front+28:b.z1+(R.pad.front||8)+30, px=SC?cxm:cxm-(b.x1-b.x0)/2-45;
-    const p=buildPerson(); p.position.set(px,floorY,pz); root.add(p);
-    if(!NOM){const l1=label('silhouette 1,75 m',5,true); l1.position.set(px+42,floorY+150,pz); root.add(l1);}
+    /* en librairie, une PLV de comptoir est posée sur le meuble : la silhouette reste au sol, devant le meuble */
+    let pFloor=floorY, pZ=pz;
+    if(environmentMode==='bookshop'&&!SC&&!MODELS[ST.type].floor&&!NOM){pFloor=b.yBase-Math.max(1,CH||94)-0.1; pZ=czm+Math.max(100,b.z1-b.z0+24)/2+34;}
+    const p=silhouetteObject(); p.position.set(px,pFloor,pZ); root.add(p);
+    if(!NOM){const l1=label('silhouette 1,75 m',5,true); l1.position.set(px+42,pFloor+150,pZ); root.add(l1);}
   }
   grid.position.set(cxm,floorY,czm); {const gs=Math.max(1,Math.ceil((Math.max(b.x1-b.x0,b.z1-b.z0)+300)/500)); grid.scale.set(gs,1,gs);} /* studio agrandi selon l'emprise */
   FLOORY=floorY;
@@ -3438,6 +3481,7 @@ const VIEWS={'34':[0.62,0.4,0.72],face:[0,0.14,1],side:[1,0.12,0.0001],back:[-0.
 let currentView='34', anim=null;
 function frame(){
   const b=R.bounds;
+  if(currentView==='human'&&environmentMode==='bookshop'&&!G.showCounter&&!MODELS[ST.type].floor&&!R.cmp){const ch=Math.max(1,G.counterH||94); return {t:new THREE.Vector3((b.x0+b.x1)/2-30,b.yBase-ch+Math.max(88,(b.Htot+ch)/2),(b.z0+b.z1)/2+40),r:Math.max(600,(b.Htot+ch)*3.2)};}
   if(currentView==='human') return G.showCounter?{t:new THREE.Vector3((b.x0+b.x1)/2,b.yBase+(b.Htot-G.counterH)/2,(b.z0+b.z1)/2+10),r:640}
     :{t:new THREE.Vector3((b.x0+b.x1)/2-30,b.yBase+Math.max(88,b.Htot/2),(b.z0+b.z1)/2+20),r:Math.max(560,b.Htot*3.2)};
   const bb=new THREE.Box3().setFromObject(R.core), c=new THREE.Vector3(), s=new THREE.Vector3(); bb.getCenter(c); bb.getSize(s);

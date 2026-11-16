@@ -11,7 +11,7 @@ Projet **séparé** de PLV WORLD (dépôt `plv-world`) : ne pas mélanger les de
 |---|---|
 | `index.html` | l'outil (code, interface, modèles de PLV) |
 | `assets/` | textures bois, teintes, MDF couleurs (JPG) |
-| `assets/librairie/` | (à venir) décor librairie : modèles 3D GLB, textures, sons |
+| `assets/3d/` | modèles 3D libres (CC0) : clients et décor de la librairie, silhouette 1,75 m, parquet, enduit — sources dans `assets/3d/CREDITS.md` |
 
 ## Règles
 - **Jamais de base64** dans `index.html` : toute image ou modèle 3D va dans `assets/` et est chargé par son chemin.
@@ -26,5 +26,5 @@ Sur ce lien, les simulations sont gardées **dans le navigateur** (IndexedDB). P
 ## Feuille de route
 1. ✅ Mise en ligne sur GitHub Pages, assets séparés.
 2. Mise à jour de three.js (r128 → version récente) : lumière réaliste, ombres douces, matières bois plus fines.
-3. Décor librairie réaliste : modèles 3D libres (meubles, tables, caisse, vitrine), parquet, éclairage, livres d'ambiance instanciés, emplacements PLV (caisse, table, allée, vitrine), vue client à 1,60 m. Chargé uniquement quand on choisit le décor Librairie.
+3. Décor librairie réaliste — **en cours** : ✅ clients réalistes, silhouette 1,75 m réaliste, parquet point de Hongrie, enduit, fauteuils, plantes, suspensions, tableau craie (Poly Haven / Innerscene, CC0). Reste : modèles 3D libres (meubles, tables, caisse, vitrine), parquet, éclairage, livres d'ambiance instanciés, emplacements PLV (caisse, table, allée, vitrine), vue client à 1,60 m. Chargé uniquement quand on choisit le décor Librairie.
 4. Performance : modèles compressés, chargement à la demande.
