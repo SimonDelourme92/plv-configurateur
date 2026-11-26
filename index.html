@@ -502,7 +502,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 </style>
 
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 26/11 · 14h30</span></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 26/11 · 16h00</span></div>
   <label class="cursim" title="Passer d'une simulation enregistrée à l'autre"><span class="lab">Simulation</span><select id="simSel" aria-label="Simulation affichée"></select><span class="curSave" id="curSave" hidden></span></label>
   <span class="sp"></span>
   <div class="histbtns" role="group" aria-label="Historique" style="display:flex;gap:6px"><button type="button" class="tb icon" id="undoBtn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3.5L2 7l3.5 3.5M2.5 7H10a4 4 0 010 8H8"/></svg></button><button type="button" class="tb icon" id="redoBtn" title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3.5L14 7l-3.5 3.5M13.5 7H6a4 4 0 000 8h2"/></svg></button></div>
@@ -1481,20 +1481,20 @@ MODELS['tourniquet-moulinet']={
 };
 MODELS['tourniquet-paniers']={
   cat:'tourniquet', label:'Tourniquet comptoir à paniers fil', desc:'Comptoir, 4 paniers fil par étage en moulinet, mât rond, pied étoile, fronton sur pince (type Miletis HD5937)', spins:true, orient:false, floor:false,
-  defaults:{N:3,Hl:19.8,y1b:3.5,mastD:2.5,cw:11.7,dz:8.6,backH:17.9,lipH:8.5,spread:0.6,rotB:30,wd:4,legs:5,legL:13.3,fw:25,fh:7,fGap:1.7,fR:0.4,
+  defaults:{N:3,Hl:19.8,y1b:3.5,mastD:2.5,cw:11.7,dz:8.6,backH:8.5,lipH:8.5,endH:8.5,rB:1,spread:0.6,rotB:32,wd:4,legs:5,legL:13.3,fw:25,fh:7,fGap:2,fR:0.4,
     book:'qsj',bw:115,bh:176,bt:9,auto:true,qty:9,mat_struct:'tole-noire',mat_wire:'tole-noire',mat_fronton:'tole-noire'},
   parts:[{key:'struct',label:'Mât et pied',short:'mât et pied',use:'both'},{key:'wire',label:'Paniers fil',short:'paniers',use:'rod'},{key:'fronton',label:'Fronton',short:'fronton',use:'panel'}],
   slots:[{key:'frontonA',label:'Fronton recto',sub:'face avant',short:'fronton recto'},{key:'frontonB',label:'Fronton verso',sub:'face arrière',short:'fronton verso',same:'frontonSame'}],
   structure(ui){
-    const n=document.createElement('p'); n.className='note'; n.style.margin='0 2px 8px'; n.textContent='4 paniers fil par étage, montés en moulinet autour d\'un mât rond : dossier haut côté mât, rebord bas devant les couvertures, côtés en pente. Pied étoile, fronton plat tenu par une pince en haut du mât.'; panel.appendChild(n);
+    const n=document.createElement('p'); n.className='note'; n.style.margin='0 2px 8px'; n.textContent='4 paniers fil par étage, montés en moulinet autour d\'un mât rond. Chaque panier : rebord sur 3 côtés (devant, derrière, bout côté mât), bout extérieur ouvert pour voir les dos. Pied étoile, fronton plat tenu par une pince en haut du mât.'; panel.appendChild(n);
     ui.group('Colonne',[F_('N','Nombre d\'étages',1,6,1,''),F_('Hl','Pas entre étages',12,35,0.1,'cm','Du fond d\'un panier au fond du panier du dessus.'),F_('y1b','Hauteur du fond des paniers du bas',2,15,0.1,'cm','Depuis le sol.'),F_('mastD','Diamètre du mât',1.5,5,0.1,'cm')]);
     ui.group('Paniers fil (cotes intérieures)',[F_('cw','Largeur',8,25,0.1,'cm','Le long des couvertures. Livre + 1,5 mm de jeu mini.'),F_('dz','Profondeur',3,15,0.1,'cm','Nombre de livres = profondeur ÷ épaisseur.'),
-      F_('backH','Hauteur du dossier',5,30,0.1,'cm','Côté mât, derrière les livres.'),F_('lipH','Hauteur du rebord avant',2,20,0.1,'cm','Devant les couvertures.'),
+      F_('lipH','Rebord avant',2,20,0.1,'cm','Devant les couvertures.'),F_('backH','Rebord arrière',2,20,0.1,'cm','Derrière les livres.'),F_('endH','Rebord du bout côté mât',0,20,0.1,'cm','0 = bout ouvert. Le bout extérieur reste ouvert (dos des livres visibles).'),F_('rB','Rayon des coins du fil',0,3,0.1,'cm'),
       F_('spread','Décalage des paniers',0,4,0.1,'cm','Jour entre deux paniers voisins.'),F_('rotB','Rotation des paniers / fronton',0,90,1,'°','Angle entre les paniers et le fronton, vus de dessus.'),F_('wd','Diamètre du fil',2,8,0.5,'mm')]);
-    ui.group('Fronton (plaque sur pince)',[F_('fw','Largeur',10,60,0.5,'cm'),F_('fh','Hauteur',0,30,0.5,'cm','0 = pas de fronton.'),F_('fGap','Écart au-dessus des dossiers',0,10,0.1,'cm'),F_('fR','Rayon des coins',0,3,0.1,'cm')]);
+    ui.group('Fronton (plaque sur pince)',[F_('fw','Largeur',10,60,0.5,'cm'),F_('fh','Hauteur',0,30,0.5,'cm','0 = pas de fronton.'),F_('fGap','Écart au-dessus des livres du haut',0,10,0.1,'cm'),F_('fR','Rayon des coins',0,3,0.1,'cm')]);
     ui.group('Pied étoile',[F_('legs','Nombre de branches',3,6,1,''),F_('legL','Longueur d\'une branche',6,30,0.1,'cm','Du centre du mât au bout de la branche.')]);
   },
-  specs:P=>[['Principe','paniers fil en moulinet sur mât rond, acier noir époxy'],['Paniers',`4 × ${P.N} = ${4*P.N}`],['Panier (int.)',`${fmt(P.cw)} × ${fmt(P.dz)} cm, dossier ${fmt(P.backH)}, rebord ${fmt(P.lipH)}`],
+  specs:P=>[['Principe','paniers fil en moulinet sur mât rond, acier noir époxy'],['Paniers',`4 × ${P.N} = ${4*P.N}`],['Panier (int.)',`${fmt(P.cw)} × ${fmt(P.dz)} cm, rebords ${fmt(P.lipH)} / ${fmt(P.backH)} / ${fmt(P.endH)} cm (avant / arrière / bout), bout extérieur ouvert`],
     ['Pas',fmt(P.Hl)+' cm'],['Mât',`tube Ø ${fmt(P.mastD)} cm`],['Pied',`étoile ${P.legs|0} branches, ${fmt(P.legL)} cm`],['Fronton',P.fh>0?`plaque ${fmt(P.fw)} × ${fmt(P.fh)} cm, recto verso, sur pince`:'aucun'],['Livres',bookLabel(P)]],
   build(P,G,K,V){
     const MS=K.part(P,'struct'), MW=K.part(P,'wire'), MF=K.part(P,'fronton');
@@ -1504,6 +1504,18 @@ MODELS['tourniquet-paniers']={
     const rod=(g,a,b)=>{const d=b.clone().sub(a), L=d.length(); if(L<1e-3) return; const r=new THREE.Mesh(rodGeo,MW.top); r.scale.y=L; r.position.copy(a.clone().add(b).multiplyScalar(0.5)); r.quaternion.setFromUnitVectors(V3(0,1,0),d.normalize()); g.add(r); wireLen+=L;};
     const joint=(g,p)=>{const s=new THREE.Mesh(jGeo,MW.top); s.position.copy(p); g.add(s);};
     const path=(g,pts)=>{for(let i=0;i<pts.length-1;i++) rod(g,pts[i],pts[i+1]); pts.slice(1,-1).forEach(p=>joint(g,p));};
+    const arc=(c,u,v,r,n)=>{const o=[]; for(let i=0;i<=n;i++){const t=Math.PI/2*i/n; o.push(c.clone().add(u.clone().multiplyScalar(r*Math.cos(t))).add(v.clone().multiplyScalar(r*Math.sin(t))));} return o;};
+    // U vertical : pieds en A et B (même hauteur), traverse à +h, coins hauts arrondis de rayon r
+    const uFrame=(g,A,B,h,r)=>{const d=B.clone().sub(A).normalize(), up=V3(0,1,0), rr2=Math.min(r,h/2,A.distanceTo(B)/2), pts=[A.clone()];
+      if(rr2>0.05){arc(A.clone().add(V3(0,h-rr2,0)).add(d.clone().multiplyScalar(rr2)),d.clone().negate(),up,rr2,4).forEach(p=>pts.push(p));
+        arc(B.clone().add(V3(0,h-rr2,0)).sub(d.clone().multiplyScalar(rr2)),up,d,rr2,4).forEach(p=>pts.push(p));}
+      else {pts.push(A.clone().add(V3(0,h,0)),B.clone().add(V3(0,h,0)));}
+      pts.push(B.clone()); path(g,pts);};
+    // cadre horizontal fermé à coins arrondis (points [x,z] dans l'ordre)
+    const loop=(g,c4,y,r)=>{const pts=[]; for(let i=0;i<4;i++){const p=c4[i], pr=c4[(i+3)%4], nx=c4[(i+1)%4];
+        const din=V3(p[0]-pr[0],0,p[1]-pr[1]).normalize(), dout=V3(nx[0]-p[0],0,nx[1]-p[1]).normalize(), P0=V3(p[0],y,p[1]);
+        if(r>0.05){const c=P0.clone().sub(din.clone().multiplyScalar(r)).add(dout.clone().multiplyScalar(r)); arc(c,dout.clone().negate(),din,r,3).forEach(q=>pts.push(q));} else pts.push(P0);}
+      pts.push(pts[0].clone()); path(g,pts);};
     // pied étoile fixe : branches en tube rectangulaire, embouts, vérins
     const legW=2.4, legH=2.1, legY=0.3, nL=Math.max(3,P.legs|0), L=P.legL;
     for(let i=0;i<nL;i++){const an=Math.PI/2+i*2*Math.PI/nL, c=Math.cos(an), s=Math.sin(an);
@@ -1516,25 +1528,24 @@ MODELS['tourniquet-paniers']={
     const rot=new THREE.Group(); rot.rotation.y=K.spinAngle(); core.add(rot);
     const a=cw+2*rr, b=dz+2*rr, S=a+b, y1=Math.max(legY+legH+0.4,P.y1b||3.5);
     const bw=P.bw/10, bh=P.bh/10, bt=P.bt/10, inW=cw-0.15;
-    const cap=Math.max(0,Math.floor((dz-0.3)/bt+1e-6)), per=P.auto?cap:Math.min(P.qty|0,cap), clash=bw>inW+1e-6||bh>P.backH+3;
+    const cap=Math.max(0,Math.floor((dz-0.3)/bt+1e-6)), per=P.auto?cap:Math.min(P.qty|0,cap), clash=bw>inW+1e-6;
     const books=new THREE.Group(); books.visible=G.showBooks; books.userData.isBooks=true; rot.add(books);
     let total=0;
     for(let k=0;k<N;k++){const y=y1+k*Hl, yB=y+P.backH, yF=y+P.lipH;
       // fourreau sur le mât (visible entre les étages)
-      const sl=new THREE.Mesh(new THREE.CylinderGeometry(mr+0.3,mr+0.3,2.2,24),MS.top); sl.position.y=y-0.6; rot.add(sl);
+      
       for(let q=0;q<4;q++){
         const g=new THREE.Group(); g.rotation.y=rotB+q*Math.PI/2; rot.add(g); const bg0=new THREE.Group(); bg0.rotation.y=g.rotation.y; books.add(bg0);
         const gg=new THREE.Group(); gg.position.z=sp; g.add(gg); const bg=new THREE.Group(); bg.position.z=sp; bg0.add(bg);
         const xa=-S/2+rr, xb=S/2-b-rr, za=S/2-b+rr, zb=S/2-rr;
-        // fond : cadre + 2 traverses + petits pieds
-        path(gg,[V3(xa,y,za),V3(xb,y,za),V3(xb,y,zb),V3(xa,y,zb),V3(xa,y,za)]); joint(gg,V3(xa,y,za));
-        [1/3,2/3].forEach(f=>{const x=xa+(xb-xa)*f; rod(gg,V3(x,y-rr*1.6,za),V3(x,y-rr*1.6,zb));});
-        // dossier haut côté mât + rebord bas devant + côtés en pente (fil continu)
-        path(gg,[V3(xa,y,zb),V3(xa,yF,zb),V3(xb,yF,zb),V3(xb,y,zb)]);
-        path(gg,[V3(xa,y,za),V3(xa,yB,za),V3(xb,yB,za),V3(xb,y,za)]);
-        rod(gg,V3(xa,yB,za),V3(xa,yF,zb)); rod(gg,V3(xb,yB,za),V3(xb,yF,zb));
-        // pattes de fixation au fourreau
-        [[xb,za],[xa*0.2,za]].forEach(([x,z])=>{const t=V3(Math.sign(x||1)*Math.min(Math.abs(x),mr+0.3),0,mr+0.3); [y+0.8,yB-1].forEach(h=>rod(g,V3(t.x,h,t.z),V3(x,h,z+sp)));});
+        // fond : cadre à coins arrondis + 2 traverses (bouts recourbés en pieds)
+        const rc=Math.min(P.rB||0,(xb-xa)/3,(zb-za)/3);
+        loop(gg,[[xa,za],[xb,za],[xb,zb],[xa,zb]],y,rc);
+        [1/3,2/3].forEach(f=>{const x=xa+(xb-xa)*f; path(gg,[V3(x,y-0.55,za+0.3),V3(x,y-rr*1.8,za+0.7),V3(x,y-rr*1.8,zb-0.7),V3(x,y-0.55,zb-0.3)]);});
+        // rebords en U (fil cintré) : devant, derrière, bout côté mât ; bout extérieur ouvert
+        uFrame(gg,V3(xa,y,zb),V3(xb,y,zb),P.lipH,rc);
+        uFrame(gg,V3(xa,y,za),V3(xb,y,za),P.backH,rc);
+        if(P.endH>0) uFrame(gg,V3(xb,y,za),V3(xb,y,zb),P.endH,rc);
         // livres : couverture vers l'extérieur, dos côté bout libre ; le 1er contre le rebord
         const x0=xa+rr+0.1;
         for(let i=0;i<per;i++){const z1=zb-rr-0.08-i*bt, z0=z1-bt+0.04, fm=K.bookFace(i+q*3+k*5,bw,bh);
@@ -1543,9 +1554,11 @@ MODELS['tourniquet-paniers']={
         total+=per;
       }
     }
-    const yTop=y1+(N-1)*Hl+P.backH;
+    const rimTop=y1+(N-1)*Hl+Math.max(P.lipH,P.backH,P.endH), yTop=Math.max(rimTop,y1+(N-1)*Hl+bh);
+    // tube carré (axe des paniers) du pied jusqu'au dernier étage, puis tube rond jusqu'au fronton
+    {const sq=Math.min(a-b-0.1,P.mastD+0.5), tH=rimTop-legY, t=new THREE.Mesh(new THREE.BoxGeometry(sq,tH,sq),MS.top); t.position.y=legY+tH/2; t.rotation.y=rotB; rot.add(t); parts.push({m:sq*4*0.15*tH*7.8,y:legY+tH/2});}
     // rondelle en haut du dernier étage
-    const ring=new THREE.Mesh(new THREE.CylinderGeometry(mr+1.1,mr+1.1,0.3,32),K.mat.counter); ring.position.y=yTop+0.15; rot.add(ring);
+    const ring=new THREE.Mesh(new THREE.CylinderGeometry(mr+0.45,mr+0.45,0.3,32),K.mat.counter); ring.position.y=rimTop+0.15; rot.add(ring);
     parts.push({m:wireLen*Math.PI*rr*rr*7.8,y:y1+(N-1)*Hl/2+P.backH/2});
     // fronton : plaque à coins arrondis, languette-pince autour du mât, molette
     const hasF=P.fh>0, fy0=yTop+P.fGap, fT=0.2, mastTop=hasF?fy0+0.6:yTop+0.6;
@@ -1575,14 +1588,13 @@ MODELS['tourniquet-paniers']={
     if(cw-bw>1.5) al.push(`Beaucoup de jeu en largeur : ${fmt((cw-bw)*10)} mm.`);
     if(b>a-P.mastD+0.01) al.push(`Paniers trop profonds pour le moulinet : il reste ${fmt(a-b)} cm au centre pour un mât de ${fmt(P.mastD)} cm.`);
     if(N>1&&Hl-bh<1.5) al.push(`Seulement ${fmt((Hl-bh)*10)} mm au-dessus des livres pour les sortir.`);
-    if(bh>P.backH+3) al.push(`Livres beaucoup plus hauts que le dossier (${fmt(bh)} pour ${fmt(P.backH)} cm).`);
     if(tip<15) al.push(`Bascule dès ${Math.round(tip)}° : allonger les branches du pied.`);
     return {core,spinner:rot,fill:{per,cap,facings:4*N,total,unit:'panier',units:'Paniers'},
       slotSizes:{frontonA:[P.fw,P.fh],frontonB:[P.fw,P.fh],covers:[bw,bh]},
       bounds:{x0:-E2,x1:E2,z0:-E2,z1:E2,yBase:0,Htot},pad:{right:o+sz*5+6,left:o+sz*3+6,front:o+4},
       kv:[['Hors-tout Ø × H',`${fmt(2*E2)} × ${fmt(Htot)}`,true],['Paniers',`${4*N} <small>4×${N}</small>`],['Livres / panier',`${per} <small>max ${cap}</small>`],
         ['Volumes',`${total}`],['Corps',`${fmt(S+2*sp)} × ${fmt(S+2*sp)} cm`],['Poids chargé',`${fmt(mt/1000)} kg`],['Bascule',`${Math.round(tip)}°`]],
-      measures:[['Hors-tout',`Ø ${fmt(2*E2)} × ${fmt(Htot)} cm`],['Corps (moulinet)',`${fmt(S+2*sp)} × ${fmt(S+2*sp)} cm, Ø balayé ${fmt(2*Rb)} cm`],['Panier (int.)',`${fmt(cw)} × ${fmt(dz)} cm, dossier ${fmt(P.backH)}, rebord ${fmt(P.lipH)} cm`],
+      measures:[['Hors-tout',`Ø ${fmt(2*E2)} × ${fmt(Htot)} cm`],['Corps (moulinet)',`${fmt(S+2*sp)} × ${fmt(S+2*sp)} cm, Ø balayé ${fmt(2*Rb)} cm`],['Panier (int.)',`${fmt(cw)} × ${fmt(dz)} cm, rebords ${fmt(P.lipH)} / ${fmt(P.backH)} / ${fmt(P.endH)} cm`],
         ['Pas',`${fmt(Hl)} cm (fond des paniers du bas à ${fmt(y1)} cm)`],['Fronton',hasF?`${fmt(P.fw)} × ${fmt(P.fh)} cm, bas à ${fmt(fy0)} cm`:'—'],['Pied',`étoile ${nL} branches de ${fmt(L)} cm`],['Mât',`Ø ${fmt(P.mastD)} cm`],['Centre de gravité chargé',`${fmt(hCG)} cm`]],
       alerts:al};
   }
