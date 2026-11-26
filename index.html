@@ -502,7 +502,7 @@ input[type=range]::-moz-range-progress{background:var(--accent)}
 </style>
 
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 26/11 · 16h00</span></div>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.8l5.5 3.1v6.2L8 14.2l-5.5-3.1V4.9z"/><path d="M2.5 4.9L8 8l5.5-3.1M8 8v6.2"/></svg></span><h1>Configurateur PLV</h1><span class="appver" title="Version du configurateur">v. 26/11 · 16h30</span></div>
   <label class="cursim" title="Passer d'une simulation enregistrée à l'autre"><span class="lab">Simulation</span><select id="simSel" aria-label="Simulation affichée"></select><span class="curSave" id="curSave" hidden></span></label>
   <span class="sp"></span>
   <div class="histbtns" role="group" aria-label="Historique" style="display:flex;gap:6px"><button type="button" class="tb icon" id="undoBtn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3.5L2 7l3.5 3.5M2.5 7H10a4 4 0 010 8H8"/></svg></button><button type="button" class="tb icon" id="redoBtn" title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3.5L14 7l-3.5 3.5M13.5 7H6a4 4 0 000 8h2"/></svg></button></div>
@@ -1022,7 +1022,7 @@ MODELS['comptoir-carton']={
     const c=ui.group('Carton',[]);
     const n=document.createElement('p'); n.className='note'; n.style.margin='10px 16px'; n.textContent=`Cannelure ${f.label}, ${fmt(f.t)} mm — à choisir dans l'onglet Matériaux. Toutes les cotes saisies sont intérieures ; la façade est en double paroi repliée.`; c.appendChild(n);
     ui.group('Bac (cotes intérieures)',[F_('W','Largeur intérieure',10,120,0.5,'cm'),F_('Dp','Profondeur intérieure par étage',5,60,0.5,'cm')]);
-    ui.group('Étages',[F_('N','Nombre d\'étages',1,6,1,'','Gradins : chaque étage a son fond et sa façade.'),F_('stepH','Élévation entre étages',0,40,0.5,'cm','Hauteur de marche d\'un étage au suivant.')]);
+    ui.group('Étages',[F_('N','Nombre d\'étages',1,6,1,'','Gradins : chaque étage a son fond et sa façade.'),F_('F','Facings par étage',1,8,1,'','Piles de livres côte à côte sur chaque marche, réparties sur la largeur.'),F_('stepH','Élévation entre étages',0,40,0.5,'cm','Hauteur de marche d\'un étage au suivant.')]);
     ui.group('Hauteurs',[F_('Hf','Façade de chaque étage',2,40,0.5,'cm','Depuis le dessus du fond de l\'étage.'),F_('Hs','Joues à l\'arrière',2,80,0.5,'cm','Les joues montent en pente de la façade jusqu\'à cette hauteur contre le dos.'),
       F_('Hb','Dos-fronton',5,150,0.5,'cm','Hauteur totale du dos depuis le dessus du fond du bas, fronton compris.'),F_('backR','Arrondi des coins du fronton',0,15,0.5,'cm','0 = angles droits.')]);
     const vg=ui.group('Dos du fronton',[]); ui.choice(vg,'dosVerso',[['idem','Comme le carton'],['kraft','Fronton : dos en kraft brut (au-dessus du bac)']]);
@@ -1078,18 +1078,19 @@ MODELS['comptoir-carton']={
       const m=new THREE.Mesh(geo,mats); m.position.z=-Dtot; core.add(m);
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),MD.edge); e.position.copy(m.position); core.add(e);
       parts.push({m:W*(Hb+t)*t*MD.rho,y:Hb/2,d:dB+t/2});}
-    const BAYS=[[t,W-t]], F=1, widths=[Wi];
+    const F=Math.max(1,P.F|0), fwF=Wi/F, widths=Array(F).fill(fwF);
     const bw=P.bw/10, bh=P.bh/10, bt=P.bt/10;
     const cap=P.orient==='face'?Math.max(0,Math.floor(Di/bt+1e-6)):Math.max(0,Math.floor(Wi/bt+1e-6)), per=P.auto?cap:Math.min(P.qty|0,cap);
-    const clashW=P.orient==='face'?bw>Wi+1e-6:bw>Di+1e-6;
+    const clashW=P.orient==='face'?bw>fwF+1e-6:bw>Di+1e-6;
     const books=new THREE.Group(); books.visible=G.showBooks; books.userData.isBooks=true; core.add(books);
-    for(let k=0;k<N;k++){const y=yk(k), back=fl(k)[1], cx=W/2;
+    for(let k=0;k<N;k++){const y=yk(k), back=fl(k)[1];
+     for(let j=0;j<F;j++){const cx=t+fwF*(j+0.5), fi=k*F+j; /* plusieurs facings : une pile = un titre (couverture n° fi) */
       for(let i=0;i<per;i++){
-        if(P.orient==='face') K.box(books,cx-bw/2,cx+bw/2,y+0.02,y+bh,-(back-i*bt-0.03),-(back-(i+1)*bt+0.03),clashW?K.mat.clash:K.bookFace(i+k*5,bw,bh),K.mat.bookEdge);
+        if(P.orient==='face') K.box(books,cx-bw/2,cx+bw/2,y+0.02,y+bh,-(back-i*bt-0.03),-(back-(i+1)*bt+0.03),clashW?K.mat.clash:K.bookFace(F>1?fi:i+k*5,bw,bh),K.mat.bookEdge);
         else {const x0=cx-per*bt/2+i*bt; K.box(books,x0+0.03,x0+bt-0.03,y+0.02,y+bh,-back,-(back-bw),clashW?K.mat.clash:K.bookSpine((i+k*3)%8),K.mat.bookEdge);}
       }
-      if(per) parts.push({m:bw*bh*bt*per*0.75,y:y+bh/2,d:back-Di/2});}
-    const total=per*N, Hstruct=Hb+t, Htot=Math.max(Hstruct,G.showBooks&&per?yk(N-1)+bh+t:0);
+      if(per) parts.push({m:bw*bh*bt*per*0.75,y:y+bh/2,d:back-Di/2});}}
+    const total=per*N*F, Hstruct=Hb+t, Htot=Math.max(Hstruct,G.showBooks&&per?yk(N-1)+bh+t:0);
     let mt=0,cy=0,cd=0; parts.forEach(p=>{mt+=p.m;cy+=p.m*p.y;cd+=p.m*(p.d||Dtot/2);}); cy/=mt||1; cd/=mt||1;
     const back=Math.atan2(Dtot-cd,cy+t)*180/Math.PI, fwd=Math.atan2(cd,cy+t)*180/Math.PI;
     const sz=Math.max(1.8,Math.max(W,Dtot,Htot)/22), o=sz*1.6, dims=new THREE.Group(); dims.userData.isDims=true; dims.visible=G.showDims; core.add(dims);
@@ -1107,7 +1108,7 @@ MODELS['comptoir-carton']={
     if(back<20) al.push(`Bascule arrière dès ${Math.round(back)}° : instable.`);
     const MEAS=[['Hors-tout largeur',fmt(W)+' cm'],['Hors-tout profondeur',fmt(Dtot)+' cm'],['Hors-tout hauteur',fmt(Hstruct)+' cm'],['Intérieur',`${fmt(Wi)} × ${fmt(Di)} cm`],
       ['Façade / joues / dos',`${fmt(Hf)} / ${fmt(Hs)} / ${fmt(Hb)} cm`],['Cannelure',`${f.id} · ${fmt(f.t)} mm`],['Étages',N>1?`${N}, marche ${fmt(sh)} cm`:'1']];
-    return {core,measures:MEAS,fill:{per,cap,facings:N,total},widths,
+    return {core,measures:MEAS,fill:{per,cap,facings:N*F,total},widths,
       slotSizes:{fronton:[W,Hb+t],trottoir:[W,Hf+t],joues:[Dtot-dF,Hs+t],covers:[bw,bh]},
       bounds:{x0:0,x1:W,z0:-Dtot,z1:0,yBase:-t,Htot},
       pad:{right:o+sz*5+6,left:Math.max(8,o+5)+sz*1.5,front:Math.max(8,o+6)},
@@ -3442,6 +3443,9 @@ function mbBrut(w,h,side){const k=w?(Math.round(w*2)/2)+'x'+(Math.round(h*2)/2):
   return mbBrutCache[key];}
 
 /* Tranches de livre : fines lignes de feuilles, légère irrégularité, ombre près des couvertures (texture dessinée, sans image) */
+const JASP={}; function jaspage(col){if(JASP[col]) return JASP[col];
+  const mk=src=>{const m=new THREE.MeshPhongMaterial({map:src.map,color:new THREE.Color(col),specular:0x555555,shininess:38}); return m;};
+  return JASP[col]={u:mk(PAGES.u),v:mk(PAGES.v)};}
 const PAGES=(()=>{const c=document.createElement('canvas'); c.width=256; c.height=64; const x=c.getContext('2d');
   for(let i=0;i<256;i++){const e=Math.min(i,255-i)/256; let r=240,g=231,b=212;
     if(e<0.02){r=g=b=40;} else { const sh=e<0.1?0.62+e*3.8:1, n=0.85+Math.random()*0.15, l=(i%6<2)?0.55:(i%6<3?0.8:1), k=sh*n*l; r*=k; g*=k; b*=k; }
@@ -3458,9 +3462,10 @@ const K={
   bookFace(i,bw,bh){
     const ci=((i%8)+8)%8, V=curV(), n=V.covers.length;
     const cv=n?V.covers[((i%n)+n)%n]:null, front=cv?(imgMat(cv,bw,bh)||coverMats[ci]):coverMats[ci];
+    const pg=cv&&cv.edge?jaspage(cv.edge):PAGES; /* jaspage : tranches teintées (or, argent, cuivre…) */
     if(cv&&(cv.spine||cv.spineUrl)){K._sp=K._sp||{}; const sp=K._sp[cv.spine||'#222']||(K._sp[cv.spine||'#222']=new THREE.MeshLambertMaterial({color:cv.spine||'#222'}));
-      const dos=cv.spineUrl?(imgMat({id:cv.id+'_dos',url:cv.spineUrl,fit:'cover'},cv.spineW||bh*0.12,bh)||sp):sp; return [PAGES.u,dos,PAGES.v,PAGES.v,front,sp];} // dos imprimé (image) ou couleur unie // couleur de dos / 4e fixée par la couverture
-    return [PAGES.u,spineMats[ci],PAGES.v,PAGES.v,front,coverMats[ci]];
+      const dos=cv.spineUrl?(imgMat({id:cv.id+'_dos',url:cv.spineUrl,fit:'cover'},cv.spineW||bh*0.12,bh)||sp):sp; return [pg.u,dos,pg.v,pg.v,front,sp];} // dos imprimé (image) ou couleur unie // couleur de dos / 4e fixée par la couverture
+    return [pg.u,spineMats[ci],pg.v,pg.v,front,coverMats[ci]];
   },
   bookSpine:ci=>[coverMats[ci],coverMats[ci],MAT.pages,MAT.pages,spineMats[ci],MAT.pages],
   box(g,x0,x1,y0,y1,z0,z1,mat,edges,mass){
